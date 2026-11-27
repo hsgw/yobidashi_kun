@@ -4,9 +4,9 @@
   "description": "イベントブース用 双方向呼び出しボタン",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#f8fafc",
-  "theme_color": "#dc2626",
+  "orientation": "landscape",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
   "icons": [
     {
       "src": "/icon.svg",

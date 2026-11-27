@@ -1,2 +1,5 @@
 TELEGRAM_BOT_TOKEN=123456789:ABCDEF...
 TELEGRAM_CHAT_ID=123456789
+# 任意: ブース画面に表示する制作者名とアイコン（画像URL または data:image/... の Data URI）
+# STAFF_NAME=スタッフ
+# STAFF_ICON=https://example.pages.dev/icon.png

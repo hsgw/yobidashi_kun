@@ -44,16 +44,22 @@ export async function onRequestPost(context) {
 
   const apiUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`;
 
+  // 日本時間 (UTC+9) の次の正時を計算
+  const jstNextHour = new Date(now + 9 * 60 * 60 * 1000 + 60 * 60 * 1000).getUTCHours();
+
   const payload = {
     chat_id: env.TELEGRAM_CHAT_ID,
     text: "🔔 会場から呼び出しがありました！\n返信ボタンを押すか、このままメッセージを送ってください。",
     reply_markup: {
       inline_keyboard: [
         [
-          { text: "今向かいます", callback_data: "preset:now" },
-          { text: "あと5分", callback_data: "preset:5min" },
+          { text: "すぐ向かいます", callback_data: "preset:now" },
+          { text: "5分ぐらい", callback_data: "preset:5min" },
         ],
-        [{ text: "あと10分", callback_data: "preset:10min" }],
+        [
+          { text: "30分ぐらい", callback_data: "preset:30min" },
+          { text: `${jstNextHour}:00頃`, callback_data: `preset:hour:${jstNextHour}` },
+        ],
       ],
     },
   };

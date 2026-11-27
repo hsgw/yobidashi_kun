@@ -3,12 +3,12 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#dc2626">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#09090b">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>呼び出しボタン</title>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>制作者を呼ぶ</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <style>
@@ -20,164 +20,674 @@
     html, body {
       margin: 0;
       padding: 0;
+      width: 100%;
       height: 100%;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
-      background-color: #f8fafc;
-      color: #0f172a;
+      height: 100dvh;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      background-color: #09090b;
+      color: #ffffff;
       touch-action: manipulation;
       user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
 
-    .container {
-      min-height: 100%;
+    /* 横向き全面2分割（左 50% 情報パネル / 右 50% ボタン → 押下時 100% スライド拡大） */
+    .split-layout {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 左パネル（黒ベース） */
+    .info-panel {
+      flex: 0 0 50%;
+      min-width: 0;
+      overflow: hidden;
+      background-color: #09090b;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      padding: 24px 20px;
-      max-width: 480px;
-      margin: 0 auto;
+      justify-content: center;
+      gap: clamp(12px, 3vh, 18px);
+      padding-top: max(20px, env(safe-area-inset-top));
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+      padding-left: max(28px, calc(env(safe-area-inset-left) + 20px));
+      padding-right: 28px;
+      transition: flex-basis 0.45s cubic-bezier(0.22, 1, 0.36, 1), padding 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
     }
 
-    .header {
-      text-align: center;
-      width: 100%;
+    .info-panel > * {
+      min-width: 240px;
+    }
+
+    .split-layout.is-expanded .info-panel {
+      flex: 0 0 0%;
+      padding-left: 0;
+      padding-right: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .status-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: clamp(0.95rem, 1.8vw, 1.15rem);
+      font-weight: 800;
+      color: #fb923c;
+      letter-spacing: 0.05em;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #f97316;
+      box-shadow: 0 0 10px rgba(249, 115, 22, 0.7);
+      flex-shrink: 0;
     }
 
     .title {
-      font-size: 1.25rem;
-      font-weight: 700;
+      font-size: clamp(2rem, 4.2vw, 2.85rem);
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      line-height: 1.12;
       margin: 0;
-      color: #334155;
+      color: #ffffff;
     }
 
-    .status-area {
-      width: 100%;
-      min-height: 120px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 20px;
-      border-radius: 16px;
-      background-color: #ffffff;
-      border: 2px solid #e2e8f0;
-      margin: 16px 0;
-      transition: background-color 0.2s, border-color 0.2s;
-    }
-
-    .status-area.is-calling {
-      background-color: #fef9c3;
-      border-color: #eab308;
-    }
-
-    .status-area.is-reply {
-      background-color: #dcfce7;
-      border-color: #16a34a;
-      cursor: pointer;
-    }
-
-    .status-area.is-error {
-      background-color: #fee2e2;
-      border-color: #dc2626;
-    }
-
-    .status-text {
-      font-size: 1.35rem;
-      font-weight: 700;
-      line-height: 1.5;
+    /* 吹き出しなしのクリーンな説明テキスト */
+    .status-message {
+      font-size: clamp(0.95rem, 1.8vw, 1.12rem);
+      font-weight: 500;
+      line-height: 1.65;
+      color: #d4d4d8;
       margin: 0;
       word-break: break-word;
+      overflow-wrap: anywhere;
+      transition: color 0.2s ease, border-color 0.2s ease, padding 0.2s ease;
     }
 
-    .status-hint {
-      font-size: 0.85rem;
-      color: #475569;
-      margin-top: 8px;
+    .status-message.is-error {
+      border-left: 3px solid #ef4444;
+      padding-left: 14px;
+      color: #fca5a5;
+      font-weight: 600;
+    }
+
+    /* 出展者プロフィール（アイコン＋名前） */
+    .creator-chip {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .creator-chip.is-hidden {
       display: none;
     }
 
-    .status-area.is-reply .status-hint {
-      display: block;
-    }
-
-    .button-wrap {
-      flex: 1;
+    .creator-avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background-color: #27272a;
+      color: #e4e4e7;
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 1.5px solid #3f3f46;
+    }
+
+    .creator-avatar svg {
+      width: 26px;
+      height: 26px;
+      fill: currentColor;
+    }
+
+    .creator-avatar img {
       width: 100%;
-      padding: 12px 0;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .creator-name {
+      font-size: clamp(1rem, 1.9vw, 1.18rem);
+      font-weight: 700;
+      color: #e4e4e7;
+    }
+
+    /* 右側ペイン（ボタンと返答ステージの親） */
+    .right-pane {
+      flex: 1 1 0%;
+      min-width: 0;
+      height: 100%;
+      position: relative;
+      display: flex;
     }
 
     .call-button {
-      width: 240px;
-      height: 240px;
-      border-radius: 50%;
+      width: 100%;
+      height: 100%;
       border: none;
-      background-color: #dc2626;
+      border-radius: 0;
+      margin: 0;
+      padding-top: max(16px, env(safe-area-inset-top));
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      padding-left: 20px;
+      padding-right: max(20px, calc(env(safe-area-inset-right) + 12px));
+      background-color: #ea580c;
       color: #ffffff;
-      font-size: 2rem;
-      font-weight: 800;
       cursor: pointer;
-      box-shadow: 0 10px 25px rgba(220, 38, 38, 0.35), inset 0 -6px 0 rgba(0, 0, 0, 0.18);
-      transition: transform 0.08s ease, background-color 0.2s ease, box-shadow 0.08s ease;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      line-height: 1.3;
+      gap: clamp(6px, 1.5vh, 14px);
+      transition: background-color 0.15s ease, box-shadow 0.1s ease;
+      box-shadow: inset 4px 0 0 rgba(0, 0, 0, 0.14);
     }
 
     .call-button:active:not(:disabled) {
-      transform: translateY(4px) scale(0.98);
-      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+      background-color: #c2410c;
+      box-shadow: inset 0 6px 24px rgba(0, 0, 0, 0.28);
     }
 
     .call-button:disabled {
-      background-color: #94a3b8;
-      box-shadow: none;
+      background-color: #27272a;
+      color: #a1a1aa;
       cursor: not-allowed;
+      box-shadow: inset 4px 0 0 rgba(0, 0, 0, 0.24);
+    }
+
+    .call-button.is-sent,
+    .call-button.is-sent:disabled {
+      background-color: #2563eb;
+      color: #ffffff;
+      box-shadow: none;
+    }
+
+    .button-label {
+      font-size: clamp(2.4rem, 6.5vw, 4.5rem);
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      line-height: 1.1;
+      transition: transform 0.08s ease;
+    }
+
+    .split-layout.is-expanded .call-button.is-sent .button-label {
+      font-size: clamp(2.5rem, 6.2vw, 4rem);
+    }
+
+    .call-button:active:not(:disabled) .button-label {
+      transform: scale(0.96);
     }
 
     .button-sub {
-      font-size: 0.95rem;
-      font-weight: 600;
-      margin-top: 6px;
-      opacity: 0.9;
+      font-size: clamp(1.05rem, 2.2vw, 1.5rem);
+      font-weight: 700;
+      opacity: 0.92;
+      min-height: 1.2em;
     }
 
-    .footer {
+    .button-sub:empty {
+      display: none;
+    }
+
+    /* ピョコン！跳ねアニメーション */
+    .dots {
+      display: inline-flex;
+      align-items: baseline;
+      margin-left: 0.08em;
+    }
+
+    .dots span {
+      display: inline-block;
+      animation: dotBounce 2.5s infinite;
+    }
+
+    .dots span:nth-child(2) {
+      animation-delay: 0.14s;
+    }
+
+    .dots span:nth-child(3) {
+      animation-delay: 0.28s;
+    }
+
+    @keyframes dotBounce {
+      0% { transform: translateY(0) scale(1, 1); }
+      5% { transform: translateY(0.06em) scale(1.15, 0.85); }
+      13% { transform: translateY(-0.58em) scale(0.92, 1.12); }
+      21% { transform: translateY(0.04em) scale(1.1, 0.9); }
+      26%, 100% { transform: translateY(0) scale(1, 1); }
+    }
+
+    /* 返答表示モード: 100%緑背景＋横から出てくるLINE風吹き出し */
+    .reply-stage {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background-color: #16a34a;
+      color: #ffffff;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding-top: max(20px, env(safe-area-inset-top));
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+      padding-left: max(24px, env(safe-area-inset-left));
+      padding-right: max(24px, env(safe-area-inset-right));
+    }
+
+    .right-pane.is-reply-panel .call-button {
+      display: none;
+    }
+
+    .right-pane.is-reply-panel .reply-stage {
+      display: flex;
+    }
+
+    .reply-stage.can-resend {
+      cursor: pointer;
+    }
+
+    .reply-stage-inner {
       width: 100%;
-      text-align: center;
-      font-size: 0.75rem;
-      color: #64748b;
+      max-width: 680px;
+    }
+
+    .line-bubble-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 16px;
+      width: 100%;
+      animation: linePopIn 0.52s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .line-avatar {
+      flex-shrink: 0;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background-color: #ffffff;
+      color: #15803d;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
+    }
+
+    .line-avatar svg {
+      width: 34px;
+      height: 34px;
+      fill: currentColor;
+    }
+
+    .line-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .line-content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .line-name {
+      font-size: clamp(1rem, 1.9vw, 1.15rem);
+      font-weight: 800;
+      color: rgba(255, 255, 255, 0.96);
+      padding-left: 4px;
+      line-height: 1.2;
+    }
+
+    .line-name:empty {
+      display: none;
+    }
+
+    .line-bubble {
+      position: relative;
+      background-color: #ffffff;
+      color: #09090b;
+      border-radius: 22px;
+      padding: 16px 26px;
+      font-size: clamp(1.35rem, 3vw, 1.75rem);
+      font-weight: 800;
+      line-height: 1.45;
+      text-align: left;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .line-bubble::before {
+      content: "";
+      position: absolute;
+      top: 16px;
+      left: -11px;
+      width: 0;
+      height: 0;
+      border-top: 8px solid transparent;
+      border-bottom: 10px solid transparent;
+      border-right: 13px solid #ffffff;
+    }
+
+    .line-bubble-timer {
+      display: none;
+      margin-top: 14px;
+      background-color: #ffffff;
+      color: #09090b;
+      border-radius: 22px;
+      padding: 14px 26px;
+      font-size: clamp(0.95rem, 1.8vw, 1.08rem);
+      font-weight: 700;
+      line-height: 1.45;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
+      transform-origin: left center;
+      animation: timerPopIn 0.48s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .line-bubble-timer.is-visible {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .timer-countdown {
+      font-size: clamp(1.35rem, 3vw, 1.75rem);
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: #09090b;
+    }
+
+    .line-bubble-late {
+      display: none;
+      margin-top: 14px;
+      background-color: #ffffff;
+      color: #09090b;
+      border-radius: 22px;
+      padding: 16px 26px;
+      font-size: clamp(1.35rem, 3vw, 1.75rem);
+      font-weight: 800;
+      line-height: 1.45;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
+      transform-origin: left center;
+      animation: timerPopIn 0.48s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .line-bubble-late.is-visible {
+      display: inline-block;
+    }
+
+    .line-bubble-resend {
+      display: none;
+      position: relative;
+      margin-top: 14px;
+      appearance: none;
+      border: none;
+      background-color: #ea580c;
+      color: #ffffff;
+      border-radius: 22px;
+      padding: 16px 26px;
+      font-size: clamp(1.35rem, 3vw, 1.75rem);
+      font-weight: 800;
+      line-height: 1.45;
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+      transform-origin: left center;
+      animation: timerPopIn 0.48s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      transition: background-color 0.15s ease, transform 0.08s ease;
+    }
+
+    .line-bubble-resend.is-visible {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .line-bubble-resend:active {
+      background-color: #c2410c;
+      transform: scale(0.96);
+    }
+
+    @keyframes linePopIn {
+      0% {
+        opacity: 0;
+        transform: translate(-52px, 12px) scale(0.82);
+      }
+      65% {
+        opacity: 1;
+        transform: translate(6px, -6px) scale(1.04);
+      }
+      100% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+      }
+    }
+
+    @keyframes timerPopIn {
+      0% {
+        opacity: 0;
+        transform: translate(-24px, 18px) scale(0.76);
+      }
+      65% {
+        opacity: 1;
+        transform: translate(3px, -7px) scale(1.05);
+      }
+      100% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+      }
+    }
+
+    /* 縦向きで開かれた場合のフォールバック（上50% / 下50%） */
+    @media (orientation: portrait) {
+      .split-layout {
+        flex-direction: column;
+      }
+
+      .info-panel {
+        flex: 0 0 50%;
+        padding-top: max(24px, calc(env(safe-area-inset-top) + 12px));
+        padding-bottom: 20px;
+        padding-left: max(20px, env(safe-area-inset-left));
+        padding-right: max(20px, env(safe-area-inset-right));
+      }
+
+      .split-layout.is-expanded .info-panel {
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+
+      .call-button {
+        padding-left: max(20px, env(safe-area-inset-left));
+        padding-right: max(20px, env(safe-area-inset-right));
+        padding-bottom: max(24px, calc(env(safe-area-inset-bottom) + 12px));
+        box-shadow: inset 0 4px 0 rgba(0, 0, 0, 0.14);
+      }
+
+      .button-label {
+        font-size: clamp(2.5rem, 11vw, 4.5rem);
+      }
+    }
+
+    /* 長押し編集モーダル */
+    .edit-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background-color: rgba(0, 0, 0, 0.78);
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .edit-modal.is-open {
+      display: flex;
+    }
+
+    .edit-card {
+      width: 100%;
+      max-width: 460px;
+      background-color: #18181b;
+      border: 1px solid #3f3f46;
+      border-radius: 18px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    }
+
+    .edit-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .edit-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #a1a1aa;
+    }
+
+    .edit-input,
+    .edit-textarea {
+      width: 100%;
+      background-color: #09090b;
+      border: 1px solid #3f3f46;
+      border-radius: 10px;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 0.95rem;
+      padding: 10px 12px;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .edit-textarea {
+      resize: none;
+      line-height: 1.5;
+    }
+
+    .edit-input:focus,
+    .edit-textarea:focus {
+      outline: none;
+      border-color: #f97316;
+    }
+
+    .edit-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .edit-actions-right {
+      display: flex;
+      gap: 8px;
+    }
+
+    .edit-btn {
+      border: none;
+      border-radius: 10px;
+      padding: 9px 16px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .edit-btn-reset {
+      background-color: transparent;
+      color: #a1a1aa;
+      padding-left: 4px;
+      padding-right: 4px;
+    }
+
+    .edit-btn-cancel {
+      background-color: #27272a;
+      color: #e4e4e7;
+    }
+
+    .edit-btn-save {
+      background-color: #ea580c;
+      color: #ffffff;
     }
   </style>
 </head>
 <body>
-  <main class="container">
-    <header class="header">
-      <h1 class="title">スタッフ呼び出し</h1>
-    </header>
-
-    <section id="statusArea" class="status-area" aria-live="polite">
-      <p id="statusText" class="status-text">御用の方はボタンを押してください</p>
-      <span id="statusHint" class="status-hint">タップすると待機画面に戻ります</span>
+  <main id="splitLayout" class="split-layout">
+    <section class="info-panel">
+      <div id="statusEyebrow" class="status-eyebrow">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span id="eyebrowText">ちょっと離席中です</span>
+      </div>
+      <h1 class="title">制作者を呼ぶ</h1>
+      <p id="statusText" class="status-message" aria-live="polite">作品の説明や質問、喋ってみたいなど、なんでも気軽にどうぞ！</p>
+      <div id="creatorChip" class="creator-chip is-hidden">
+        <div id="creatorAvatar" class="creator-avatar" aria-hidden="true"></div>
+        <span id="creatorName" class="creator-name"></span>
+      </div>
     </section>
 
-    <div class="button-wrap">
+    <div id="rightPane" class="right-pane">
       <button id="callButton" class="call-button" type="button">
-        <span id="buttonLabel">呼び出す</span>
+        <span id="buttonLabel" class="button-label">呼んでみる</span>
         <span id="buttonSub" class="button-sub"></span>
       </button>
-    </div>
 
-    <footer class="footer">
-      <span id="connectionState">接続準備中...</span>
-    </footer>
+      <div id="replyStage" class="reply-stage">
+        <div class="reply-stage-inner">
+          <div id="lineBubbleRow" class="line-bubble-row">
+            <div id="lineAvatar" class="line-avatar" aria-hidden="true"></div>
+            <div class="line-content">
+              <span id="lineName" class="line-name"></span>
+              <div id="lineBubble" class="line-bubble"></div>
+              <div id="lineBubbleTimer" class="line-bubble-timer">
+                <span id="timerLabel">あと</span>
+                <span id="timerCountdown" class="timer-countdown">0:00</span>
+              </div>
+              <div id="lineBubbleLate" class="line-bubble-late">ごめんなさい。遅れています。</div>
+              <button id="resendBubbleBtn" class="line-bubble-resend" type="button">もう一度呼ぶ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
+
+  <div id="editModal" class="edit-modal" role="dialog" aria-modal="true" aria-label="表示メッセージの編集">
+    <form id="editForm" class="edit-card">
+      <div class="edit-field">
+        <label class="edit-label" for="editEyebrowInput">サブタイトル</label>
+        <input id="editEyebrowInput" class="edit-input" type="text" maxlength="40">
+      </div>
+      <div class="edit-field">
+        <label class="edit-label" for="editMessageInput">説明メッセージ</label>
+        <textarea id="editMessageInput" class="edit-textarea" rows="2" maxlength="120"></textarea>
+      </div>
+      <div class="edit-actions">
+        <button id="editResetBtn" class="edit-btn edit-btn-reset" type="button">初期値に戻す</button>
+        <div class="edit-actions-right">
+          <button id="editCancelBtn" class="edit-btn edit-btn-cancel" type="button">キャンセル</button>
+          <button class="edit-btn edit-btn-save" type="submit">保存</button>
+        </div>
+      </div>
+    </form>
+  </div>
 
   <script>
     (function () {
@@ -185,23 +695,98 @@
       const REQUEST_TIMEOUT_MS = 10_000;
       const REPLY_RESET_MS = 60_000;
       const POLL_INTERVAL_MS = 3_000;
+      const LONG_PRESS_MS = 3_000;
+      const EDIT_LONG_PRESS_MS = 1_500;
       const STORAGE_KEY = "yobidashi_last_call_time";
-      const DEFAULT_STATUS = "御用の方はボタンを押してください";
+      const EYEBROW_STORAGE_KEY = "yobidashi_custom_eyebrow";
+      const MESSAGE_STORAGE_KEY = "yobidashi_custom_message";
+      const DEFAULT_EYEBROW = "ちょっと離席中です";
+      const DEFAULT_STATUS = "作品の説明や質問、喋ってみたいなど、なんでも気軽にどうぞ！";
+      const DEFAULT_AVATAR_SVG = '<svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>';
 
+      const splitLayout = document.getElementById("splitLayout");
+      const statusEyebrow = document.getElementById("statusEyebrow");
+      const eyebrowText = document.getElementById("eyebrowText");
+      const statusText = document.getElementById("statusText");
+      const editModal = document.getElementById("editModal");
+      const editForm = document.getElementById("editForm");
+      const editEyebrowInput = document.getElementById("editEyebrowInput");
+      const editMessageInput = document.getElementById("editMessageInput");
+      const editResetBtn = document.getElementById("editResetBtn");
+      const editCancelBtn = document.getElementById("editCancelBtn");
+      const creatorChip = document.getElementById("creatorChip");
+      const creatorAvatar = document.getElementById("creatorAvatar");
+      const creatorName = document.getElementById("creatorName");
+      const rightPane = document.getElementById("rightPane");
       const callButton = document.getElementById("callButton");
       const buttonLabel = document.getElementById("buttonLabel");
       const buttonSub = document.getElementById("buttonSub");
-      const statusArea = document.getElementById("statusArea");
-      const statusText = document.getElementById("statusText");
-      const connectionState = document.getElementById("connectionState");
+      const replyStage = document.getElementById("replyStage");
+      const lineBubbleRow = document.getElementById("lineBubbleRow");
+      const lineAvatar = document.getElementById("lineAvatar");
+      const lineName = document.getElementById("lineName");
+      const lineBubble = document.getElementById("lineBubble");
+      const lineBubbleTimer = document.getElementById("lineBubbleTimer");
+      const timerLabel = document.getElementById("timerLabel");
+      const timerCountdown = document.getElementById("timerCountdown");
+      const lineBubbleLate = document.getElementById("lineBubbleLate");
+      const resendBubbleBtn = document.getElementById("resendBubbleBtn");
 
       let audioCtx = null;
       let cooldownTimer = null;
+      let errorResetTimer = null;
       let replyResetTimer = null;
+      let replyStageTimers = [];
+      let replyTimerInterval = null;
       let pollTimer = null;
       let pollOffset = 0;
       let wakeLock = null;
       let isRequesting = false;
+      let isReplyShowing = false;
+      let longPressTimer = null;
+      let editLongPressTimer = null;
+
+      function getSavedEyebrow() {
+        return localStorage.getItem(EYEBROW_STORAGE_KEY) || DEFAULT_EYEBROW;
+      }
+
+      function getSavedMessage() {
+        return localStorage.getItem(MESSAGE_STORAGE_KEY) || DEFAULT_STATUS;
+      }
+
+      function renderStandbyCopy() {
+        eyebrowText.textContent = getSavedEyebrow();
+        if (!errorResetTimer) {
+          setStatus(getSavedMessage(), false);
+        }
+      }
+
+      function applyAvatar(el, iconUrl) {
+        if (iconUrl) {
+          const img = document.createElement("img");
+          img.src = iconUrl;
+          img.alt = "";
+          img.onerror = () => {
+            el.innerHTML = DEFAULT_AVATAR_SVG;
+          };
+          el.innerHTML = "";
+          el.appendChild(img);
+        } else {
+          el.innerHTML = DEFAULT_AVATAR_SVG;
+        }
+      }
+
+      function applyProfile(profile) {
+        const name = typeof profile?.name === "string" ? profile.name.trim() : "";
+        const iconUrl = profile?.hasIcon ? "/api/icon" : "";
+        lineName.textContent = name;
+        creatorName.textContent = name;
+        creatorChip.classList.toggle("is-hidden", !name && !iconUrl);
+        applyAvatar(lineAvatar, iconUrl);
+        applyAvatar(creatorAvatar, iconUrl);
+      }
+
+      applyProfile(null);
 
       // Web Audio API で「ピンポーン」を生成して再生
       function playChime() {
@@ -240,39 +825,212 @@
         osc.stop(startTime + duration);
       }
 
-      function setStatus(text, stateClass = "") {
-        clearTimeout(replyResetTimer);
-        statusArea.className = "status-area" + (stateClass ? " " + stateClass : "");
+      function setAnimatedText(el, text, withDots = false) {
+        if (el.dataset.text === text && el.dataset.dots === String(withDots)) return;
+        el.dataset.text = text;
+        el.dataset.dots = String(withDots);
+        el.textContent = text;
+        if (withDots) {
+          const dots = document.createElement("span");
+          dots.className = "dots";
+          dots.setAttribute("aria-hidden", "true");
+          for (let i = 0; i < 3; i++) {
+            const dot = document.createElement("span");
+            dot.textContent = ".";
+            dots.appendChild(dot);
+          }
+          el.appendChild(dots);
+        }
+      }
+
+      function setStatus(text, isError = false) {
+        statusText.className = "status-message" + (isError ? " is-error" : "");
         statusText.textContent = text;
       }
 
-      function resetToStandby() {
-        setStatus(DEFAULT_STATUS, "");
+      function clearReplyTimers() {
+        clearTimeout(replyResetTimer);
+        replyResetTimer = null;
+        replyStageTimers.forEach(clearTimeout);
+        replyStageTimers = [];
+        clearInterval(replyTimerInterval);
+        replyTimerInterval = null;
       }
 
-      statusArea.addEventListener("click", () => {
-        if (statusArea.classList.contains("is-reply")) {
-          resetToStandby();
+      function resetToStandby() {
+        clearReplyTimers();
+        clearTimeout(errorResetTimer);
+        errorResetTimer = null;
+        clearInterval(cooldownTimer);
+        cooldownTimer = null;
+        localStorage.removeItem(STORAGE_KEY);
+        isReplyShowing = false;
+        rightPane.classList.remove("is-reply-panel");
+        replyStage.classList.remove("can-resend");
+        lineBubbleTimer.classList.remove("is-visible");
+        lineBubbleLate.classList.remove("is-visible");
+        resendBubbleBtn.classList.remove("is-visible");
+        splitLayout.classList.remove("is-expanded");
+        callButton.disabled = false;
+        callButton.classList.remove("is-sent");
+        setAnimatedText(buttonLabel, "呼んでみる", false);
+        buttonSub.textContent = "";
+        setStatus(getSavedMessage(), false);
+      }
+
+      function parseReplyTimerInfo(text, receivedAtMs) {
+        if (/\d{1,2}\s*[:：時]/.test(text)) {
+          return null;
         }
-      });
+        const minMatch = text.match(/(\d+)\s*分/);
+        if (minMatch) {
+          const minutes = Number(minMatch[1]);
+          if (minutes <= 0) return null;
+          return {
+            mode: minutes >= 15 ? "eta" : "countdown",
+            targetMs: receivedAtMs + minutes * 60 * 1000,
+          };
+        }
+        return null;
+      }
+
+      function formatClockTime(ms) {
+        const d = new Date(ms);
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        return `${hh}:${mm}`;
+      }
+
+      function formatRemaining(ms) {
+        if (ms <= 0) return "0:00";
+        const totalSec = Math.ceil(ms / 1000);
+        const mins = Math.floor(totalSec / 60);
+        const secs = String(totalSec % 60).padStart(2, "0");
+        return `${mins}:${secs}`;
+      }
+
+      function showBubble(el) {
+        el.classList.add("is-visible");
+        el.style.animation = "none";
+        void el.offsetWidth;
+        el.style.animation = "";
+      }
+
+      function showLateAndResend() {
+        showBubble(lineBubbleLate);
+        replyStageTimers.push(setTimeout(() => {
+          showBubble(resendBubbleBtn);
+          replyStage.classList.add("can-resend");
+        }, 500));
+      }
+
+      function showReply(text) {
+        clearReplyTimers();
+        clearTimeout(errorResetTimer);
+        errorResetTimer = null;
+        isReplyShowing = true;
+        splitLayout.classList.add("is-expanded");
+        rightPane.classList.add("is-reply-panel");
+        replyStage.classList.remove("can-resend");
+        lineBubbleTimer.classList.remove("is-visible");
+        lineBubbleLate.classList.remove("is-visible");
+        resendBubbleBtn.classList.remove("is-visible");
+
+        lineBubble.textContent = text;
+        lineBubbleRow.style.animation = "none";
+        void lineBubbleRow.offsetWidth;
+        lineBubbleRow.style.animation = "";
+
+        const info = parseReplyTimerInfo(text, Date.now());
+        if (!info) {
+          // 時間指定のない返答は 60 秒後に自動復帰
+          replyResetTimer = setTimeout(resetToStandby, REPLY_RESET_MS);
+          return;
+        }
+
+        if (info.mode === "eta") {
+          replyStageTimers.push(setTimeout(() => {
+            timerLabel.textContent = "戻り予定";
+            timerCountdown.textContent = formatClockTime(info.targetMs);
+            showBubble(lineBubbleTimer);
+
+            if (Date.now() >= info.targetMs) {
+              showLateAndResend();
+              return;
+            }
+            replyTimerInterval = setInterval(() => {
+              if (Date.now() >= info.targetMs) {
+                clearInterval(replyTimerInterval);
+                replyTimerInterval = null;
+                showLateAndResend();
+              }
+            }, 1000);
+          }, 1000));
+          return;
+        }
+
+        const tick = () => {
+          const remaining = info.targetMs - Date.now();
+          timerLabel.textContent = "あと";
+          if (remaining <= 0) {
+            timerCountdown.textContent = "0:00";
+            clearInterval(replyTimerInterval);
+            replyTimerInterval = null;
+            showLateAndResend();
+            return;
+          }
+          timerCountdown.textContent = formatRemaining(remaining);
+        };
+
+        replyStageTimers.push(setTimeout(() => {
+          tick();
+          showBubble(lineBubbleTimer);
+          if (info.targetMs > Date.now()) {
+            replyTimerInterval = setInterval(tick, 250);
+          }
+        }, 1000));
+      }
+
+      function showErrorState(message, durationMs = COOLDOWN_MS) {
+        clearReplyTimers();
+        clearTimeout(errorResetTimer);
+        clearInterval(cooldownTimer);
+        cooldownTimer = null;
+        isReplyShowing = false;
+
+        splitLayout.classList.remove("is-expanded");
+        rightPane.classList.remove("is-reply-panel");
+        callButton.disabled = true;
+        callButton.classList.remove("is-sent");
+        setAnimatedText(buttonLabel, "呼んでみる", false);
+        const waitSec = Math.max(1, Math.ceil(durationMs / 1000));
+        buttonSub.textContent = `${waitSec}秒後に再送信できます`;
+        setStatus(message, true);
+
+        errorResetTimer = setTimeout(resetToStandby, durationMs);
+      }
 
       function updateCooldownUI() {
+        if (isReplyShowing || errorResetTimer) return false;
         const saved = Number(localStorage.getItem(STORAGE_KEY) || 0);
         const remainingMs = COOLDOWN_MS - (Date.now() - saved);
 
         if (remainingMs > 0) {
-          const remainingSec = Math.ceil(remainingMs / 1000);
+          splitLayout.classList.add("is-expanded");
           callButton.disabled = true;
-          buttonLabel.textContent = "送信済み";
-          buttonSub.textContent = `あと ${remainingSec} 秒`;
+          callButton.classList.add("is-sent");
+          setAnimatedText(buttonLabel, "呼んでいます", true);
+          buttonSub.textContent = "送信済み";
           return true;
         }
 
         clearInterval(cooldownTimer);
         cooldownTimer = null;
         if (!isRequesting) {
+          splitLayout.classList.remove("is-expanded");
           callButton.disabled = false;
-          buttonLabel.textContent = "呼び出す";
+          callButton.classList.remove("is-sent");
+          setAnimatedText(buttonLabel, "呼んでみる", false);
           buttonSub.textContent = "";
         }
         return false;
@@ -287,16 +1045,26 @@
       }
 
       async function handleCall() {
-        if (callButton.disabled || isRequesting) return;
+        if (isRequesting) return;
+        if (!isReplyShowing && callButton.disabled) return;
+
+        clearReplyTimers();
+        clearTimeout(errorResetTimer);
+        errorResetTimer = null;
+        isReplyShowing = false;
+        rightPane.classList.remove("is-reply-panel");
+        replyStage.classList.remove("can-resend");
 
         requestWakeLock();
         playChime();
 
         isRequesting = true;
+        splitLayout.classList.add("is-expanded");
         callButton.disabled = true;
-        buttonLabel.textContent = "送信中...";
+        callButton.classList.remove("is-sent");
+        setAnimatedText(buttonLabel, "送信中", true);
         buttonSub.textContent = "";
-        setStatus("呼び出しています...", "is-calling");
+        setStatus(getSavedMessage(), false);
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -309,13 +1077,16 @@
           clearTimeout(timeoutId);
 
           if (res.ok) {
-            setStatus("呼び出しました！返答をお待ちください", "is-calling");
+            isRequesting = false;
             startCooldown(COOLDOWN_MS);
           } else if (res.status === 429) {
             const data = await res.json().catch(() => ({}));
             const retrySec = Number(data.retryAfter) || 30;
-            setStatus(`連続送信防止のため ${retrySec} 秒お待ちください`, "is-error");
-            startCooldown(retrySec * 1000);
+            isRequesting = false;
+            showErrorState(
+              `連続送信防止のため ${retrySec} 秒お待ちください`,
+              retrySec * 1000
+            );
           } else {
             const errBody = await res.text().catch(() => "");
             throw new Error(`HTTP ${res.status}: ${errBody}`);
@@ -323,20 +1094,93 @@
         } catch (err) {
           clearTimeout(timeoutId);
           console.error("Call error:", err);
-          setStatus(
-            "通信に失敗しました。会場のWi-Fiをご確認のうえ、もう一度お試しください。",
-            "is-error"
-          );
-          callButton.disabled = false;
-          buttonLabel.textContent = "呼び出す";
-          buttonSub.textContent = "再試行";
-        } finally {
           isRequesting = false;
-          updateCooldownUI();
+          showErrorState("ごめんなさい。通信に失敗しました。", COOLDOWN_MS);
         }
       }
 
       callButton.addEventListener("click", handleCall);
+
+      replyStage.addEventListener("click", () => {
+        if (isReplyShowing && resendBubbleBtn.classList.contains("is-visible")) {
+          handleCall();
+        }
+      });
+
+      // 画面を 3 秒長押しで待機画面へ戻る（案内文字なし）
+      function cancelLongPress() {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+
+      document.addEventListener("pointerdown", () => {
+        const isStandby = !splitLayout.classList.contains("is-expanded") && !errorResetTimer;
+        if (isStandby) return;
+        cancelLongPress();
+        longPressTimer = setTimeout(() => {
+          resetToStandby();
+        }, LONG_PRESS_MS);
+      });
+
+      document.addEventListener("pointerup", cancelLongPress);
+      document.addEventListener("pointercancel", cancelLongPress);
+
+      // 待機中のサブタイトル / 説明文を長押し（1.5秒）で編集モーダルを開く
+      function openEditModal(focusTarget) {
+        editEyebrowInput.value = getSavedEyebrow();
+        editMessageInput.value = getSavedMessage();
+        editModal.classList.add("is-open");
+        focusTarget.focus();
+      }
+
+      function closeEditModal() {
+        editModal.classList.remove("is-open");
+      }
+
+      function cancelEditLongPress() {
+        clearTimeout(editLongPressTimer);
+        editLongPressTimer = null;
+      }
+
+      function bindEditLongPress(el, focusInput) {
+        el.addEventListener("pointerdown", (e) => {
+          const isStandby = !splitLayout.classList.contains("is-expanded") && !errorResetTimer;
+          if (!isStandby || editModal.classList.contains("is-open")) return;
+          e.stopPropagation();
+          cancelEditLongPress();
+          editLongPressTimer = setTimeout(() => {
+            openEditModal(focusInput);
+          }, EDIT_LONG_PRESS_MS);
+        });
+        el.addEventListener("pointerup", cancelEditLongPress);
+        el.addEventListener("pointercancel", cancelEditLongPress);
+        el.addEventListener("pointerleave", cancelEditLongPress);
+      }
+
+      bindEditLongPress(statusEyebrow, editEyebrowInput);
+      bindEditLongPress(statusText, editMessageInput);
+
+      editForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const nextEyebrow = editEyebrowInput.value.trim() || DEFAULT_EYEBROW;
+        const nextMessage = editMessageInput.value.trim() || DEFAULT_STATUS;
+        localStorage.setItem(EYEBROW_STORAGE_KEY, nextEyebrow);
+        localStorage.setItem(MESSAGE_STORAGE_KEY, nextMessage);
+        renderStandbyCopy();
+        closeEditModal();
+      });
+
+      editResetBtn.addEventListener("click", () => {
+        localStorage.removeItem(EYEBROW_STORAGE_KEY);
+        localStorage.removeItem(MESSAGE_STORAGE_KEY);
+        renderStandbyCopy();
+        closeEditModal();
+      });
+
+      editCancelBtn.addEventListener("click", closeEditModal);
+      editModal.addEventListener("click", (e) => {
+        if (e.target === editModal) closeEditModal();
+      });
 
       // 返信のリアルタイム受信 (Telegram ポーリング)
       async function pollReplies(isInit = false) {
@@ -358,16 +1202,16 @@
             pollOffset = data.nextOffset;
           }
 
-          connectionState.textContent = "返信待機中（接続済み）";
+          if (isInit && data.profile) {
+            applyProfile(data.profile);
+          }
 
           if (!isInit && Array.isArray(data.messages) && data.messages.length > 0) {
             const latest = data.messages[data.messages.length - 1];
-            setStatus(latest, "is-reply");
-            replyResetTimer = setTimeout(resetToStandby, REPLY_RESET_MS);
+            showReply(latest);
           }
         } catch (err) {
           console.error("Poll failed:", err);
-          connectionState.textContent = "再接続中...";
         }
       }
 
@@ -398,6 +1242,7 @@
       });
 
       // 初期化
+      renderStandbyCopy();
       if (updateCooldownUI()) {
         cooldownTimer = setInterval(updateCooldownUI, 250);
       }

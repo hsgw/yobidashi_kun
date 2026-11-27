@@ -4,10 +4,11 @@
 
 ## 構成
 
-- `public/index.html` - 呼び出しボタン UI・返信ポーリング・Wake Lock・クールダウン制御
-- `public/manifest.json` / `public/icon.svg` - PWA 設定（`standalone` 表示）
+- `public/index.html` - 呼び出しボタン UI・返信ポーリング・タイマー・Wake Lock・クールダウン制御
+- `public/manifest.json` / `public/icon.svg` - PWA 設定（`standalone`・横向き表示）
 - `functions/api/call.js` - `POST /api/call`（インメモリ連打防止 + Telegram `sendMessage`）
-- `functions/api/poll.js` - `GET /api/poll`（Telegram `getUpdates` による返信取得・ボタン応答）
+- `functions/api/poll.js` - `GET /api/poll`（Telegram `getUpdates` による返信取得・ボタン応答・プロフィール取得）
+- `functions/api/icon.js` - `GET /api/icon`（環境変数 `STAFF_ICON` の配信・プロキシ）
 
 ## セットアップ & デプロイ（Cloudflare Pages）
 
@@ -24,6 +25,8 @@
 3. **Settings** → **Environment variables** に、以下を Secret（Encrypt）として登録し、再デプロイします。
    - `TELEGRAM_BOT_TOKEN`
    - `TELEGRAM_CHAT_ID`
+   - `STAFF_NAME`（任意: ブース画面に表示する名前）
+   - `STAFF_ICON`（任意: アイコン画像の URL または Base64 Data URI）
 
 ### 3. アクセス制限（Cloudflare Access）
 
