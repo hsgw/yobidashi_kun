@@ -1,0 +1,18 @@
+{
+  "name": "呼び出しくん",
+  "short_name": "Yobidashi-kun",
+  "description": "イベントブース用 双方向呼び出しボタン",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#dc2626",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

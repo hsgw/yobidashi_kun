@@ -1,0 +1,401 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#dc2626">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>呼び出しボタン</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      touch-action: manipulation;
+      user-select: none;
+    }
+
+    .container {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 20px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      width: 100%;
+    }
+
+    .title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0;
+      color: #334155;
+    }
+
+    .status-area {
+      width: 100%;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      border-radius: 16px;
+      background-color: #ffffff;
+      border: 2px solid #e2e8f0;
+      margin: 16px 0;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    .status-area.is-calling {
+      background-color: #fef9c3;
+      border-color: #eab308;
+    }
+
+    .status-area.is-reply {
+      background-color: #dcfce7;
+      border-color: #16a34a;
+      cursor: pointer;
+    }
+
+    .status-area.is-error {
+      background-color: #fee2e2;
+      border-color: #dc2626;
+    }
+
+    .status-text {
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1.5;
+      margin: 0;
+      word-break: break-word;
+    }
+
+    .status-hint {
+      font-size: 0.85rem;
+      color: #475569;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .status-area.is-reply .status-hint {
+      display: block;
+    }
+
+    .button-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 12px 0;
+    }
+
+    .call-button {
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      border: none;
+      background-color: #dc2626;
+      color: #ffffff;
+      font-size: 2rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(220, 38, 38, 0.35), inset 0 -6px 0 rgba(0, 0, 0, 0.18);
+      transition: transform 0.08s ease, background-color 0.2s ease, box-shadow 0.08s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.3;
+    }
+
+    .call-button:active:not(:disabled) {
+      transform: translateY(4px) scale(0.98);
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+    }
+
+    .call-button:disabled {
+      background-color: #94a3b8;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    .button-sub {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-top: 6px;
+      opacity: 0.9;
+    }
+
+    .footer {
+      width: 100%;
+      text-align: center;
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1 class="title">スタッフ呼び出し</h1>
+    </header>
+
+    <section id="statusArea" class="status-area" aria-live="polite">
+      <p id="statusText" class="status-text">御用の方はボタンを押してください</p>
+      <span id="statusHint" class="status-hint">タップすると待機画面に戻ります</span>
+    </section>
+
+    <div class="button-wrap">
+      <button id="callButton" class="call-button" type="button">
+        <span id="buttonLabel">呼び出す</span>
+        <span id="buttonSub" class="button-sub"></span>
+      </button>
+    </div>
+
+    <footer class="footer">
+      <span id="connectionState">接続準備中...</span>
+    </footer>
+  </main>
+
+  <script>
+    (function () {
+      const COOLDOWN_MS = 30_000;
+      const REQUEST_TIMEOUT_MS = 10_000;
+      const REPLY_RESET_MS = 60_000;
+      const STORAGE_KEY = "yobidashi_last_call_time";
+      const DEFAULT_STATUS = "御用の方はボタンを押してください";
+
+      const callButton = document.getElementById("callButton");
+      const buttonLabel = document.getElementById("buttonLabel");
+      const buttonSub = document.getElementById("buttonSub");
+      const statusArea = document.getElementById("statusArea");
+      const statusText = document.getElementById("statusText");
+      const connectionState = document.getElementById("connectionState");
+
+      let audioCtx = null;
+      let cooldownTimer = null;
+      let replyResetTimer = null;
+      let eventSource = null;
+      let wakeLock = null;
+      let isRequesting = false;
+
+      // Web Audio API で「ピンポーン」を生成して再生
+      function playChime() {
+        try {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) return;
+
+          if (!audioCtx) {
+            audioCtx = new AudioContextClass();
+          }
+          if (audioCtx.state === "suspended") {
+            audioCtx.resume();
+          }
+
+          const now = audioCtx.currentTime;
+          playTone(659.25, now, 0.35);        // ミ (E5)
+          playTone(523.25, now + 0.28, 0.7);  // ド (C5)
+        } catch (err) {
+          console.warn("Audio playback failed:", err);
+        }
+      }
+
+      function playTone(freq, startTime, duration) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, startTime);
+
+        gain.gain.setValueAtTime(0.001, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.4, startTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      }
+
+      function setStatus(text, stateClass = "") {
+        clearTimeout(replyResetTimer);
+        statusArea.className = "status-area" + (stateClass ? " " + stateClass : "");
+        statusText.textContent = text;
+      }
+
+      function resetToStandby() {
+        setStatus(DEFAULT_STATUS, "");
+      }
+
+      statusArea.addEventListener("click", () => {
+        if (statusArea.classList.contains("is-reply")) {
+          resetToStandby();
+        }
+      });
+
+      function updateCooldownUI() {
+        const saved = Number(localStorage.getItem(STORAGE_KEY) || 0);
+        const remainingMs = COOLDOWN_MS - (Date.now() - saved);
+
+        if (remainingMs > 0) {
+          const remainingSec = Math.ceil(remainingMs / 1000);
+          callButton.disabled = true;
+          buttonLabel.textContent = "送信済み";
+          buttonSub.textContent = `あと ${remainingSec} 秒`;
+          return true;
+        }
+
+        clearInterval(cooldownTimer);
+        cooldownTimer = null;
+        if (!isRequesting) {
+          callButton.disabled = false;
+          buttonLabel.textContent = "呼び出す";
+          buttonSub.textContent = "";
+        }
+        return false;
+      }
+
+      function startCooldown(durationMs = COOLDOWN_MS) {
+        const fakeLastCall = Date.now() - (COOLDOWN_MS - durationMs);
+        localStorage.setItem(STORAGE_KEY, String(fakeLastCall));
+        clearInterval(cooldownTimer);
+        updateCooldownUI();
+        cooldownTimer = setInterval(updateCooldownUI, 250);
+      }
+
+      async function handleCall() {
+        if (callButton.disabled || isRequesting) return;
+
+        requestWakeLock();
+        playChime();
+
+        isRequesting = true;
+        callButton.disabled = true;
+        buttonLabel.textContent = "送信中...";
+        buttonSub.textContent = "";
+        setStatus("呼び出しています...", "is-calling");
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+        try {
+          const res = await fetch("/api/call", {
+            method: "POST",
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+
+          if (res.ok) {
+            setStatus("呼び出しました！返答をお待ちください", "is-calling");
+            startCooldown(COOLDOWN_MS);
+          } else if (res.status === 429) {
+            const data = await res.json().catch(() => ({}));
+            const retrySec = Number(data.retryAfter) || 30;
+            setStatus(`連続送信防止のため ${retrySec} 秒お待ちください`, "is-error");
+            startCooldown(retrySec * 1000);
+          } else {
+            throw new Error(`HTTP ${res.status}`);
+          }
+        } catch (err) {
+          clearTimeout(timeoutId);
+          console.error("Call error:", err);
+          setStatus(
+            "通信に失敗しました。会場のWi-Fiをご確認のうえ、もう一度お試しください。",
+            "is-error"
+          );
+          callButton.disabled = false;
+          buttonLabel.textContent = "呼び出す";
+          buttonSub.textContent = "再試行";
+        } finally {
+          isRequesting = false;
+          updateCooldownUI();
+        }
+      }
+
+      callButton.addEventListener("click", handleCall);
+
+      // 返信のリアルタイム受信 (SSE)
+      async function initReplyStream() {
+        try {
+          const res = await fetch("/api/config", { cache: "no-store" });
+          if (!res.ok) throw new Error(`Config HTTP ${res.status}`);
+          const { replyTopic } = await res.json();
+          if (!replyTopic) throw new Error("Missing replyTopic");
+
+          const sseUrl = `https://ntfy.sh/${encodeURIComponent(replyTopic)}/sse`;
+          eventSource = new EventSource(sseUrl);
+
+          eventSource.onopen = () => {
+            connectionState.textContent = "返信待機中（接続済み）";
+          };
+
+          eventSource.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (data.event === "message" && data.message) {
+                setStatus(data.message, "is-reply");
+                replyResetTimer = setTimeout(resetToStandby, REPLY_RESET_MS);
+              }
+            } catch (parseErr) {
+              console.warn("Invalid SSE payload:", parseErr);
+            }
+          };
+
+          eventSource.onerror = () => {
+            connectionState.textContent = "再接続中...";
+          };
+        } catch (err) {
+          console.error("SSE init failed:", err);
+          connectionState.textContent = "返信受信の初期化に失敗しました";
+        }
+      }
+
+      // Screen Wake Lock API で画面スリープを防止
+      async function requestWakeLock() {
+        if (!("wakeLock" in navigator) || wakeLock) return;
+        try {
+          wakeLock = await navigator.wakeLock.request("screen");
+          wakeLock.addEventListener("release", () => {
+            wakeLock = null;
+          });
+        } catch (err) {
+          console.warn("Wake Lock failed:", err);
+        }
+      }
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          requestWakeLock();
+        }
+      });
+
+      // 初期化
+      if (updateCooldownUI()) {
+        cooldownTimer = setInterval(updateCooldownUI, 250);
+      }
+      requestWakeLock();
+      initReplyStream();
+    })();
+  </script>
+</body>
+</html>
