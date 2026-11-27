@@ -91,9 +91,10 @@
     }
 
     .title {
-      font-size: clamp(2rem, 4.2vw, 2.85rem);
+      font-size: clamp(2.15rem, 4.4vw, 3rem);
       font-weight: 900;
-      letter-spacing: 0.03em;
+      -webkit-text-stroke: 0.025em currentColor;
+      letter-spacing: 0.04em;
       line-height: 1.12;
       margin: 0;
       color: #ffffff;
@@ -104,7 +105,7 @@
       font-size: clamp(0.95rem, 1.8vw, 1.12rem);
       font-weight: 500;
       line-height: 1.65;
-      color: #d4d4d8;
+      color: #f4f4f5;
       margin: 0;
       word-break: break-word;
       overflow-wrap: anywhere;
@@ -160,7 +161,7 @@
     .creator-name {
       font-size: clamp(1rem, 1.9vw, 1.18rem);
       font-weight: 700;
-      color: #e4e4e7;
+      color: #ffffff;
     }
 
     /* 右側ペイン（ボタンと返答ステージの親） */
@@ -190,7 +191,7 @@
       align-items: center;
       justify-content: center;
       gap: clamp(6px, 1.5vh, 14px);
-      transition: background-color 0.15s ease, box-shadow 0.1s ease;
+      transition: background-color 0.45s ease, box-shadow 0.1s ease;
       box-shadow: inset 4px 0 0 rgba(0, 0, 0, 0.14);
     }
 
@@ -206,6 +207,13 @@
       box-shadow: inset 4px 0 0 rgba(0, 0, 0, 0.24);
     }
 
+    .call-button.is-sending,
+    .call-button.is-sending:disabled {
+      background-color: #1e40af;
+      color: #ffffff;
+      box-shadow: none;
+    }
+
     .call-button.is-sent,
     .call-button.is-sent:disabled {
       background-color: #2563eb;
@@ -213,103 +221,105 @@
       box-shadow: none;
     }
 
-    .button-bell {
-      width: clamp(36px, 5vw, 48px);
-      height: clamp(36px, 5vw, 48px);
-      fill: currentColor;
-      opacity: 0.96;
-      margin-bottom: 2px;
-      transform-origin: 50% 15%;
-      animation: bellRing 4.8s ease-in-out 2.4s infinite;
+    .bell-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
     }
 
-    .call-button:disabled .button-bell {
+    .call-button:disabled .bell-wrap {
       display: none;
     }
 
+    .button-bell {
+      position: relative;
+      z-index: 1;
+      width: clamp(96px, 13vw, 120px);
+      height: clamp(38px, 5.2vw, 48px);
+      overflow: visible;
+      fill: currentColor;
+      opacity: 0.98;
+    }
+
+    .bell-body {
+      transform-origin: 12px 3.6px;
+      animation: bellRing 4s ease-in-out infinite;
+    }
+
+    .bell-wave {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 4.6px;
+      stroke-linecap: round;
+      transform-origin: 12px 12px;
+      opacity: 0;
+      animation: bellWaveSpread 4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+    }
+
+    .bell-wave-2 {
+      animation-delay: 0.22s;
+    }
+
+    .bell-wave-3 {
+      animation-delay: 0.44s;
+    }
+
     @keyframes bellRing {
-      0%, 16%, 100% {
+      0%, 20%, 100% {
         transform: rotate(0deg);
       }
-      2% {
+      3% {
         transform: rotate(15deg);
       }
-      4.5% {
+      6% {
         transform: rotate(-14deg);
       }
-      7% {
+      9% {
         transform: rotate(11deg);
       }
-      9.5% {
+      12% {
         transform: rotate(-9deg);
       }
-      12% {
+      15% {
         transform: rotate(5deg);
       }
-      14% {
+      18% {
         transform: rotate(-3deg);
       }
     }
 
-    .call-button:not(:disabled) .button-sub {
-      position: relative;
-      overflow: hidden;
-      margin-top: 6px;
-      padding: 6px 20px;
-      border-radius: 999px;
-      background-color: rgba(255, 255, 255, 0.16);
-      border: 1px solid rgba(255, 255, 255, 0.38);
-      font-size: clamp(0.9rem, 1.7vw, 1.05rem);
-      font-weight: 700;
-      letter-spacing: 0.06em;
-    }
-
-    .call-button:not(:disabled) .button-sub::after {
-      content: "";
-      position: absolute;
-      top: -20%;
-      left: -80%;
-      width: 55%;
-      height: 140%;
-      background: linear-gradient(
-        105deg,
-        rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0.75) 50%,
-        rgba(255, 255, 255, 0) 100%
-      );
-      transform: skewX(-24deg);
-      animation: tapShine 4.8s ease-in-out infinite;
-      pointer-events: none;
-    }
-
-    @keyframes tapShine {
+    @keyframes bellWaveSpread {
       0% {
-        left: -80%;
         opacity: 0;
+        transform: scale(0.95);
       }
-      2% {
-        opacity: 1;
+      6% {
+        opacity: 0.95;
       }
-      16% {
-        left: 140%;
-        opacity: 1;
-      }
-      18%, 100% {
-        left: 140%;
+      38%, 100% {
         opacity: 0;
+        transform: scale(1.75);
       }
     }
 
     .button-label {
-      font-size: clamp(2.4rem, 6.5vw, 4.5rem);
+      font-size: clamp(3rem, 8.5vw, 5.4rem);
       font-weight: 900;
       letter-spacing: 0.04em;
-      line-height: 1.1;
-      transition: transform 0.08s ease;
+      line-height: 1.05;
+      transition: transform 0.08s ease, opacity 0.22s ease;
     }
 
+    .split-layout.is-expanded .call-button.is-sending .button-label,
     .split-layout.is-expanded .call-button.is-sent .button-label {
-      font-size: clamp(2.5rem, 6.2vw, 4rem);
+      font-size: clamp(2.3rem, 6vw, 3.8rem);
+    }
+
+    .call-button.is-fading .button-label,
+    .call-button.is-fading .button-sub {
+      opacity: 0;
     }
 
     .call-button:active:not(:disabled) .button-label {
@@ -321,6 +331,7 @@
       font-weight: 700;
       opacity: 0.92;
       min-height: 1.2em;
+      transition: opacity 0.22s ease;
     }
 
     .button-sub:empty {
@@ -355,13 +366,16 @@
       26%, 100% { transform: translateY(0) scale(1, 1); }
     }
 
-    /* 返答表示モード: 100%緑背景＋横から出てくるLINE風吹き出し */
+    /* 返答表示モード: 左下からインディゴ背景がスライドインして覆う */
     .reply-stage {
-      display: none;
+      display: flex;
+      visibility: hidden;
+      pointer-events: none;
       position: absolute;
       inset: 0;
+      z-index: 2;
       overflow: hidden;
-      background-color: #16a34a;
+      background-color: #4338ca;
       color: #ffffff;
       flex-direction: column;
       align-items: center;
@@ -370,14 +384,26 @@
       padding-bottom: max(20px, env(safe-area-inset-bottom));
       padding-left: max(24px, env(safe-area-inset-left));
       padding-right: max(24px, env(safe-area-inset-right));
+      transform: translate(-100%, 100%);
     }
 
-    .right-pane.is-reply-panel .call-button {
-      display: none;
+    .reply-stage.is-overflowing {
+      justify-content: flex-end;
     }
 
     .right-pane.is-reply-panel .reply-stage {
-      display: flex;
+      visibility: visible;
+      pointer-events: auto;
+      animation: replyStageSlideIn 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes replyStageSlideIn {
+      0% {
+        transform: translate(-100%, 100%);
+      }
+      100% {
+        transform: translate(0, 0);
+      }
     }
 
     .reply-stage.can-resend {
@@ -395,7 +421,8 @@
       justify-content: center;
       gap: 16px;
       width: 100%;
-      animation: linePopIn 0.52s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      opacity: 0;
+      animation: linePopIn 0.52s cubic-bezier(0.34, 1.56, 0.64, 1) 0.62s forwards;
     }
 
     .line-avatar {
@@ -404,7 +431,7 @@
       height: 64px;
       border-radius: 50%;
       background-color: #ffffff;
-      color: #15803d;
+      color: #4338ca;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -741,11 +768,25 @@
 
     <div id="rightPane" class="right-pane">
       <button id="callButton" class="call-button" type="button">
-        <svg class="button-bell" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
-        </svg>
-        <span id="buttonLabel" class="button-label">呼んでみる</span>
-        <span id="buttonSub" class="button-sub">ここをタップ</span>
+        <div class="bell-wrap" aria-hidden="true">
+          <svg class="button-bell" viewBox="-18 0 60 24">
+            <g class="bell-wave bell-wave-1">
+              <path vector-effect="non-scaling-stroke" d="M -2 4.5 Q -7.5 12 -2 19.5"/>
+              <path vector-effect="non-scaling-stroke" d="M 26 4.5 Q 31.5 12 26 19.5"/>
+            </g>
+            <g class="bell-wave bell-wave-2">
+              <path vector-effect="non-scaling-stroke" d="M -2 4.5 Q -7.5 12 -2 19.5"/>
+              <path vector-effect="non-scaling-stroke" d="M 26 4.5 Q 31.5 12 26 19.5"/>
+            </g>
+            <g class="bell-wave bell-wave-3">
+              <path vector-effect="non-scaling-stroke" d="M -2 4.5 Q -7.5 12 -2 19.5"/>
+              <path vector-effect="non-scaling-stroke" d="M 26 4.5 Q 31.5 12 26 19.5"/>
+            </g>
+            <path class="bell-body" d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+          </svg>
+        </div>
+        <span id="buttonLabel" class="button-label">TAP</span>
+        <span id="buttonSub" class="button-sub"></span>
       </button>
 
       <div id="replyStage" class="reply-stage">
@@ -818,6 +859,7 @@
       const buttonLabel = document.getElementById("buttonLabel");
       const buttonSub = document.getElementById("buttonSub");
       const replyStage = document.getElementById("replyStage");
+      const replyStageInner = replyStage.querySelector(".reply-stage-inner");
       const lineBubbleRow = document.getElementById("lineBubbleRow");
       const lineAvatar = document.getElementById("lineAvatar");
       const lineName = document.getElementById("lineName");
@@ -825,6 +867,7 @@
 
       let audioCtx = null;
       let cooldownTimer = null;
+      let fadeTimer = null;
       let errorResetTimer = null;
       let replyStageTimers = [];
       let replyTimerInterval = null;
@@ -880,41 +923,88 @@
 
       applyProfile(null);
 
-      // Web Audio API で「ピンポーン」を生成して再生
-      function playChime() {
+      function ensureAudioCtx() {
         try {
           const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-          if (!AudioContextClass) return;
-
-          if (!audioCtx) {
-            audioCtx = new AudioContextClass();
-          }
-          if (audioCtx.state === "suspended") {
-            audioCtx.resume();
-          }
-
-          const now = audioCtx.currentTime;
-          playTone(659.25, now, 0.35);        // ミ (E5)
-          playTone(523.25, now + 0.28, 0.7);  // ド (C5)
+          if (!AudioContextClass) return null;
+          if (!audioCtx) audioCtx = new AudioContextClass();
+          if (audioCtx.state === "suspended") audioCtx.resume();
+          return audioCtx;
         } catch (err) {
-          console.warn("Audio playback failed:", err);
+          console.warn("AudioContext init failed:", err);
+          return null;
         }
       }
 
-      function playTone(freq, startTime, duration) {
+      function playTone(freq, startTime, duration, volume = 0.3, type = "sine") {
+        if (!audioCtx) return;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = "sine";
+        osc.type = type;
         osc.frequency.setValueAtTime(freq, startTime);
 
         gain.gain.setValueAtTime(0.001, startTime);
-        gain.gain.exponentialRampToValueAtTime(0.4, startTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(volume, startTime + 0.018);
         gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
 
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(startTime);
         osc.stop(startTime + duration);
+      }
+
+      // 送信中開始: 軽やかに上へ抜けるタッチ音
+      function playTapSendSound() {
+        const ctx = ensureAudioCtx();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(660, now + 0.09);
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.exponentialRampToValueAtTime(0.24, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.14);
+      }
+
+      // 送信完了（呼んでいます）: 呼び出しチャイム「ピンポーン」
+      function playChime() {
+        const ctx = ensureAudioCtx();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        playTone(659.25, now, 0.35, 0.32);        // ミ (E5)
+        playTone(523.25, now + 0.28, 0.7, 0.32);  // ド (C5)
+      }
+
+      // メッセージ受信: 透明感のある「ポロン♪」
+      function playReplySound() {
+        const ctx = ensureAudioCtx();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        playTone(783.99, now, 0.18, 0.22, "triangle");      // ソ (G5)
+        playTone(1046.50, now + 0.09, 0.34, 0.24, "sine");  // ド (C6)
+      }
+
+      // タイマー開始: 控えめな「ポッ」
+      function playTimerPopSound() {
+        const ctx = ensureAudioCtx();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        playTone(880, now, 0.1, 0.16, "sine");              // ラ (A5)
+      }
+
+      // もう一度呼ぶ出現: 穏やかな下降2音
+      function playLateSound() {
+        const ctx = ensureAudioCtx();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        playTone(587.33, now, 0.2, 0.18, "sine");           // レ (D5)
+        playTone(440.00, now + 0.12, 0.32, 0.18, "sine");   // ラ (A4)
       }
 
       function setAnimatedText(el, text, withDots = false) {
@@ -947,22 +1037,31 @@
         replyTimerInterval = null;
       }
 
+      function updateReplyOverflow() {
+        replyStage.classList.remove("is-overflowing");
+        if (replyStageInner.scrollHeight > replyStage.clientHeight - 40) {
+          replyStage.classList.add("is-overflowing");
+        }
+      }
+
       function resetToStandby() {
         clearReplyTimers();
         clearTimeout(errorResetTimer);
         errorResetTimer = null;
+        clearTimeout(fadeTimer);
+        fadeTimer = null;
         clearInterval(cooldownTimer);
         cooldownTimer = null;
         localStorage.removeItem(STORAGE_KEY);
         isReplyShowing = false;
         rightPane.classList.remove("is-reply-panel");
-        replyStage.classList.remove("can-resend");
+        replyStage.classList.remove("can-resend", "is-overflowing");
         lineMessages.innerHTML = "";
         splitLayout.classList.remove("is-expanded");
         callButton.disabled = false;
-        callButton.classList.remove("is-sent");
-        setAnimatedText(buttonLabel, "呼んでみる", false);
-        buttonSub.textContent = "ここをタップ";
+        callButton.classList.remove("is-sending", "is-sent", "is-fading");
+        setAnimatedText(buttonLabel, "TAP", false);
+        buttonSub.textContent = "";
         setStatus(getSavedMessage(), false);
       }
 
@@ -1002,6 +1101,8 @@
         lateEl.className = "line-bubble-late";
         lateEl.textContent = "ごめんなさい。遅れています。";
         lineMessages.appendChild(lateEl);
+        playReplySound();
+        updateReplyOverflow();
 
         replyStageTimers.push(setTimeout(() => {
           const resendEl = document.createElement("button");
@@ -1009,8 +1110,10 @@
           resendEl.type = "button";
           resendEl.textContent = "もう一度呼ぶ";
           lineMessages.appendChild(resendEl);
+          playLateSound();
           replyStage.classList.add("can-resend");
-        }, 500));
+          updateReplyOverflow();
+        }, 850));
       }
 
       function showReply(text) {
@@ -1018,6 +1121,9 @@
         clearReplyTimers();
         clearTimeout(errorResetTimer);
         errorResetTimer = null;
+        clearTimeout(fadeTimer);
+        fadeTimer = null;
+        callButton.classList.remove("is-fading");
         replyStage.classList.remove("can-resend");
 
         const isFirstReply = !isReplyShowing;
@@ -1035,9 +1141,12 @@
           lineBubbleRow.style.animation = "none";
           void lineBubbleRow.offsetWidth;
           lineBubbleRow.style.animation = "";
+          replyStageTimers.push(setTimeout(playReplySound, 620));
         } else {
           lineMessages.appendChild(msgBubble);
+          playReplySound();
         }
+        updateReplyOverflow();
 
         const info = parseReplyTimerInfo(text, Date.now());
         if (!info) {
@@ -1047,6 +1156,8 @@
           }
           return;
         }
+
+        const timerDelayMs = isFirstReply ? 1620 : 1000;
 
         if (info.mode === "eta") {
           replyStageTimers.push(setTimeout(() => {
@@ -1060,6 +1171,8 @@
             timerEl.appendChild(labelEl);
             timerEl.appendChild(countEl);
             lineMessages.appendChild(timerEl);
+            playTimerPopSound();
+            updateReplyOverflow();
 
             if (Date.now() >= info.targetMs) {
               showLateAndResend();
@@ -1072,7 +1185,7 @@
                 showLateAndResend();
               }
             }, 1000);
-          }, 1000));
+          }, timerDelayMs));
           return;
         }
 
@@ -1100,24 +1213,29 @@
           };
 
           tick();
+          playTimerPopSound();
+          updateReplyOverflow();
           if (info.targetMs > Date.now()) {
             replyTimerInterval = setInterval(tick, 250);
           }
-        }, 1000));
+        }, timerDelayMs));
       }
 
       function showErrorState(message, durationMs = ERROR_WAIT_MS) {
         clearReplyTimers();
         clearTimeout(errorResetTimer);
+        clearTimeout(fadeTimer);
+        fadeTimer = null;
         clearInterval(cooldownTimer);
         cooldownTimer = null;
         isReplyShowing = false;
 
         splitLayout.classList.remove("is-expanded");
         rightPane.classList.remove("is-reply-panel");
+        replyStage.classList.remove("is-overflowing");
         callButton.disabled = true;
-        callButton.classList.remove("is-sent");
-        setAnimatedText(buttonLabel, "呼んでみる", false);
+        callButton.classList.remove("is-sending", "is-sent", "is-fading");
+        setAnimatedText(buttonLabel, "TAP", false);
         const waitSec = Math.max(1, Math.ceil(durationMs / 1000));
         buttonSub.textContent = `${waitSec}秒後に再送信できます`;
         setStatus(message, true);
@@ -1125,7 +1243,7 @@
         errorResetTimer = setTimeout(resetToStandby, durationMs);
       }
 
-      function updateCooldownUI() {
+      function updateCooldownUI(withFade = false) {
         if (isReplyShowing || errorResetTimer) return false;
         const saved = Number(localStorage.getItem(STORAGE_KEY) || 0);
         const remainingMs = COOLDOWN_MS - (Date.now() - saved);
@@ -1133,9 +1251,22 @@
         if (remainingMs > 0) {
           splitLayout.classList.add("is-expanded");
           callButton.disabled = true;
+          callButton.classList.remove("is-sending");
           callButton.classList.add("is-sent");
-          setAnimatedText(buttonLabel, "呼んでいます", true);
-          buttonSub.textContent = "送信済み";
+          if (withFade) {
+            callButton.classList.add("is-fading");
+            clearTimeout(fadeTimer);
+            fadeTimer = setTimeout(() => {
+              fadeTimer = null;
+              if (isReplyShowing || errorResetTimer) return;
+              setAnimatedText(buttonLabel, "呼んでいます", true);
+              buttonSub.textContent = "返答を待っています";
+              callButton.classList.remove("is-fading");
+            }, 220);
+          } else if (!fadeTimer) {
+            setAnimatedText(buttonLabel, "呼んでいます", true);
+            buttonSub.textContent = "返答を待っています";
+          }
           return true;
         }
 
@@ -1144,19 +1275,19 @@
         if (!isRequesting) {
           splitLayout.classList.remove("is-expanded");
           callButton.disabled = false;
-          callButton.classList.remove("is-sent");
-          setAnimatedText(buttonLabel, "呼んでみる", false);
-          buttonSub.textContent = "ここをタップ";
+          callButton.classList.remove("is-sending", "is-sent", "is-fading");
+          setAnimatedText(buttonLabel, "TAP", false);
+          buttonSub.textContent = "";
         }
         return false;
       }
 
-      function startCooldown(durationMs = COOLDOWN_MS) {
+      function startCooldown(durationMs = COOLDOWN_MS, withFade = false) {
         const fakeLastCall = Date.now() - (COOLDOWN_MS - durationMs);
         localStorage.setItem(STORAGE_KEY, String(fakeLastCall));
         clearInterval(cooldownTimer);
-        updateCooldownUI();
-        cooldownTimer = setInterval(updateCooldownUI, 250);
+        updateCooldownUI(withFade);
+        cooldownTimer = setInterval(() => updateCooldownUI(false), 250);
       }
 
       async function handleCall() {
@@ -1166,17 +1297,21 @@
         clearReplyTimers();
         clearTimeout(errorResetTimer);
         errorResetTimer = null;
+        clearTimeout(fadeTimer);
+        fadeTimer = null;
         isReplyShowing = false;
         rightPane.classList.remove("is-reply-panel");
-        replyStage.classList.remove("can-resend");
+        replyStage.classList.remove("can-resend", "is-overflowing");
+        lineMessages.innerHTML = "";
 
         requestWakeLock();
-        playChime();
+        playTapSendSound();
 
         isRequesting = true;
         splitLayout.classList.add("is-expanded");
         callButton.disabled = true;
-        callButton.classList.remove("is-sent");
+        callButton.classList.remove("is-sent", "is-fading");
+        callButton.classList.add("is-sending");
         setAnimatedText(buttonLabel, "送信中", true);
         buttonSub.textContent = "";
         setStatus(getSavedMessage(), false);
@@ -1198,7 +1333,8 @@
               await new Promise((resolve) => setTimeout(resolve, waitMs));
             }
             isRequesting = false;
-            startCooldown(COOLDOWN_MS);
+            playChime();
+            startCooldown(COOLDOWN_MS, true);
           } else if (res.status === 429) {
             const data = await res.json().catch(() => ({}));
             const retrySec = Number(data.retryAfter) || 30;
