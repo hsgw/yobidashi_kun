@@ -3,7 +3,7 @@
   "short_name": "Yobidashi-kun",
   "description": "イベントブース用 双方向呼び出しボタン",
   "start_url": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#09090b",
   "theme_color": "#09090b",
