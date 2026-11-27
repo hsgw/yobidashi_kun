@@ -229,7 +229,9 @@
       margin-bottom: 4px;
     }
 
-    .call-button:disabled .bell-wrap {
+    .call-button:disabled .bell-wrap,
+    .call-button.is-sending .bell-wrap,
+    .call-button.is-sent .bell-wrap {
       display: none;
     }
 
@@ -336,6 +338,30 @@
 
     .button-sub:empty {
       display: none;
+    }
+
+    .call-button.is-can-resend {
+      cursor: pointer;
+    }
+
+    .calling-resend {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      margin-top: 14px;
+      padding: 14px 28px;
+      border-radius: 22px;
+      background-color: #ea580c;
+      color: #ffffff;
+      font-size: clamp(1.25rem, 2.6vw, 1.65rem);
+      font-weight: 800;
+      line-height: 1.4;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+      animation: timerPopIn 0.48s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .call-button.is-can-resend .calling-resend {
+      display: inline-flex;
     }
 
     /* ピョコン！跳ねアニメーション */
@@ -787,6 +813,7 @@
         </div>
         <span id="buttonLabel" class="button-label">TAP</span>
         <span id="buttonSub" class="button-sub"></span>
+        <span id="callingResend" class="calling-resend">もう一度呼ぶ</span>
       </button>
 
       <div id="replyStage" class="reply-stage">
@@ -1059,7 +1086,7 @@
         lineMessages.innerHTML = "";
         splitLayout.classList.remove("is-expanded");
         callButton.disabled = false;
-        callButton.classList.remove("is-sending", "is-sent", "is-fading");
+        callButton.classList.remove("is-sending", "is-sent", "is-fading", "is-can-resend");
         setAnimatedText(buttonLabel, "TAP", false);
         buttonSub.textContent = "";
         setStatus(getSavedMessage(), false);
@@ -1091,6 +1118,13 @@
       function formatRemaining(ms) {
         if (ms <= 0) return "0:00";
         const totalSec = Math.ceil(ms / 1000);
+        const mins = Math.floor(totalSec / 60);
+        const secs = String(totalSec % 60).padStart(2, "0");
+        return `${mins}:${secs}`;
+      }
+
+      function formatElapsed(ms) {
+        const totalSec = Math.max(0, Math.floor(ms / 1000));
         const mins = Math.floor(totalSec / 60);
         const secs = String(totalSec % 60).padStart(2, "0");
         return `${mins}:${secs}`;
@@ -1234,7 +1268,7 @@
         rightPane.classList.remove("is-reply-panel");
         replyStage.classList.remove("is-overflowing");
         callButton.disabled = true;
-        callButton.classList.remove("is-sending", "is-sent", "is-fading");
+        callButton.classList.remove("is-sending", "is-sent", "is-fading", "is-can-resend");
         setAnimatedText(buttonLabel, "TAP", false);
         const waitSec = Math.max(1, Math.ceil(durationMs / 1000));
         buttonSub.textContent = `${waitSec}秒後に再送信できます`;
@@ -1246,13 +1280,28 @@
       function updateCooldownUI(withFade = false) {
         if (isReplyShowing || errorResetTimer) return false;
         const saved = Number(localStorage.getItem(STORAGE_KEY) || 0);
+
+        if (!saved) {
+          clearInterval(cooldownTimer);
+          cooldownTimer = null;
+          if (!isRequesting) {
+            splitLayout.classList.remove("is-expanded");
+            callButton.disabled = false;
+            callButton.classList.remove("is-sending", "is-sent", "is-fading", "is-can-resend");
+            setAnimatedText(buttonLabel, "TAP", false);
+            buttonSub.textContent = "";
+          }
+          return false;
+        }
+
         const remainingMs = COOLDOWN_MS - (Date.now() - saved);
+        splitLayout.classList.add("is-expanded");
+        callButton.classList.remove("is-sending");
+        callButton.classList.add("is-sent");
 
         if (remainingMs > 0) {
-          splitLayout.classList.add("is-expanded");
           callButton.disabled = true;
-          callButton.classList.remove("is-sending");
-          callButton.classList.add("is-sent");
+          callButton.classList.remove("is-can-resend");
           if (withFade) {
             callButton.classList.add("is-fading");
             clearTimeout(fadeTimer);
@@ -1270,16 +1319,20 @@
           return true;
         }
 
-        clearInterval(cooldownTimer);
-        cooldownTimer = null;
-        if (!isRequesting) {
-          splitLayout.classList.remove("is-expanded");
-          callButton.disabled = false;
-          callButton.classList.remove("is-sending", "is-sent", "is-fading");
-          setAnimatedText(buttonLabel, "TAP", false);
-          buttonSub.textContent = "";
+        // 1分経過後も待機画面には戻さず、経過時間を表示しつつ「もう一度呼ぶ」を表示（3秒長押しでのみ戻る）
+        clearTimeout(fadeTimer);
+        fadeTimer = null;
+        callButton.classList.remove("is-fading");
+        setAnimatedText(buttonLabel, "呼んでいます", true);
+        const elapsedMs = Date.now() - saved;
+        buttonSub.textContent = `呼び出しても返事がありませんでした (${formatElapsed(elapsedMs)} 経過)`;
+        const wasCanResend = callButton.classList.contains("is-can-resend");
+        callButton.disabled = false;
+        callButton.classList.add("is-can-resend");
+        if (!wasCanResend) {
+          playLateSound();
         }
-        return false;
+        return true;
       }
 
       function startCooldown(durationMs = COOLDOWN_MS, withFade = false) {
@@ -1310,7 +1363,7 @@
         isRequesting = true;
         splitLayout.classList.add("is-expanded");
         callButton.disabled = true;
-        callButton.classList.remove("is-sent", "is-fading");
+        callButton.classList.remove("is-sent", "is-fading", "is-can-resend");
         callButton.classList.add("is-sending");
         setAnimatedText(buttonLabel, "送信中", true);
         buttonSub.textContent = "";
