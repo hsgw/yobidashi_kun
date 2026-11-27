@@ -44,7 +44,10 @@ export async function onRequestPost(context) {
 
   const payload = {
     username: "呼び出しボタン",
-    content: "🔔 **会場から呼び出しがありました！**",
+    content: "@here 🔔 **会場から呼び出しがありました！**",
+    allowed_mentions: {
+      parse: ["everyone"],
+    },
     embeds: [
       {
         title: "ブースへ返信する",
