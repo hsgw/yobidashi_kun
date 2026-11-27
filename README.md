@@ -5,8 +5,9 @@
 ## 構成
 
 - `public/index.html` - 呼び出しボタン UI・SSE リアルタイム受信・Wake Lock・クールダウン制御
+- `public/reply.html` - 運営者用返信ページ（定型文ボタン・自由文送信）
 - `public/manifest.json` / `public/icon.svg` - PWA 設定（`standalone` 表示）
-- `functions/api/call.js` - `POST /api/call`（インメモリ連打防止 + `ntfy.sh` 通知送信）
+- `functions/api/call.js` - `POST /api/call`（インメモリ連打防止 + Discord Webhook 通知送信）
 - `functions/api/config.js` - `GET /api/config`（返信用トピック名の取得）
 - `scripts/generate-topics.js` - トピック用 UUID 生成スクリプト
 
@@ -24,9 +25,9 @@ node scripts/generate-topics.js
 2. Cloudflare Dashboard → **Workers & Pages** → **Create** → **Pages** → **Connect to Git** でリポジトリを連携します。
    - **Build command**: （空欄）
    - **Build output directory**: `public`
-3. **Settings** → **Environment variables** に、手順 1 で生成した値を Secret（Encrypt）として登録し、再デプロイします。
-   - `NTFY_CALL_TOPIC`
-   - `NTFY_REPLY_TOPIC`
+3. **Settings** → **Environment variables** に、以下を Secret（Encrypt）として登録し、再デプロイします。
+   - `DISCORD_WEBHOOK_URL`（Discord チャンネルの Webhook URL）
+   - `NTFY_REPLY_TOPIC`（手順 1 で生成した返信用 UUID）
 
 ### 3. アクセス制限（Cloudflare Access）
 
