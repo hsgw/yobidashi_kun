@@ -76,13 +76,26 @@ export async function onRequestPost(context) {
     if (!response.ok) {
       const errorText = await response.text().catch(() => "");
       console.error("ntfy.sh error:", response.status, errorText);
-      return jsonResponse({ error: "Failed to send notification." }, 500);
+      return jsonResponse(
+        {
+          error: "Failed to send notification.",
+          ntfyStatus: response.status,
+          detail: errorText.slice(0, 200),
+        },
+        500
+      );
     }
 
     lastCallTime = Date.now();
     return jsonResponse({ ok: true, cooldownSeconds: COOLDOWN_MS / 1000 }, 200);
   } catch (err) {
     console.error("ntfy.sh fetch failed:", err);
-    return jsonResponse({ error: "Failed to reach notification service." }, 500);
+    return jsonResponse(
+      {
+        error: "Failed to reach notification service.",
+        detail: err instanceof Error ? err.message : String(err),
+      },
+      500
+    );
   }
 }

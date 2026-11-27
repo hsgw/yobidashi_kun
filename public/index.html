@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#dc2626">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>呼び出しボタン</title>
@@ -314,7 +315,8 @@
             setStatus(`連続送信防止のため ${retrySec} 秒お待ちください`, "is-error");
             startCooldown(retrySec * 1000);
           } else {
-            throw new Error(`HTTP ${res.status}`);
+            const errBody = await res.text().catch(() => "");
+            throw new Error(`HTTP ${res.status}: ${errBody}`);
           }
         } catch (err) {
           clearTimeout(timeoutId);
