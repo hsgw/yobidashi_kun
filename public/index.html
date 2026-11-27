@@ -272,6 +272,7 @@
       display: none;
       position: absolute;
       inset: 0;
+      overflow: hidden;
       background-color: #16a34a;
       color: #ffffff;
       flex-direction: column;
@@ -383,9 +384,27 @@
       border-right: 13px solid #ffffff;
     }
 
-    .line-bubble-timer {
+    .line-messages {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 14px;
+      width: 100%;
+    }
+
+    .line-bubble.is-followup {
+      transform-origin: left center;
+      animation: timerPopIn 0.48s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .line-bubble.is-followup::before {
       display: none;
-      margin-top: 14px;
+    }
+
+    .line-bubble-timer {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 10px;
       background-color: #ffffff;
       color: #09090b;
       border-radius: 22px;
@@ -398,12 +417,6 @@
       animation: timerPopIn 0.48s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
 
-    .line-bubble-timer.is-visible {
-      display: inline-flex;
-      align-items: baseline;
-      gap: 10px;
-    }
-
     .timer-countdown {
       font-size: clamp(1.35rem, 3vw, 1.75rem);
       font-weight: 800;
@@ -412,8 +425,7 @@
     }
 
     .line-bubble-late {
-      display: none;
-      margin-top: 14px;
+      display: inline-block;
       background-color: #ffffff;
       color: #09090b;
       border-radius: 22px;
@@ -426,14 +438,11 @@
       animation: timerPopIn 0.48s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
 
-    .line-bubble-late.is-visible {
-      display: inline-block;
-    }
-
     .line-bubble-resend {
-      display: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       position: relative;
-      margin-top: 14px;
       appearance: none;
       border: none;
       background-color: #ea580c;
@@ -448,12 +457,6 @@
       transform-origin: left center;
       animation: timerPopIn 0.48s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
       transition: background-color 0.15s ease, transform 0.08s ease;
-    }
-
-    .line-bubble-resend.is-visible {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
     }
 
     .line-bubble-resend:active {
@@ -655,13 +658,7 @@
             <div id="lineAvatar" class="line-avatar" aria-hidden="true"></div>
             <div class="line-content">
               <span id="lineName" class="line-name"></span>
-              <div id="lineBubble" class="line-bubble"></div>
-              <div id="lineBubbleTimer" class="line-bubble-timer">
-                <span id="timerLabel">あと</span>
-                <span id="timerCountdown" class="timer-countdown">0:00</span>
-              </div>
-              <div id="lineBubbleLate" class="line-bubble-late">ごめんなさい。遅れています。</div>
-              <button id="resendBubbleBtn" class="line-bubble-resend" type="button">もう一度呼ぶ</button>
+              <div id="lineMessages" class="line-messages"></div>
             </div>
           </div>
         </div>
@@ -693,7 +690,6 @@
     (function () {
       const COOLDOWN_MS = 30_000;
       const REQUEST_TIMEOUT_MS = 10_000;
-      const REPLY_RESET_MS = 60_000;
       const POLL_INTERVAL_MS = 3_000;
       const LONG_PRESS_MS = 3_000;
       const EDIT_LONG_PRESS_MS = 1_500;
@@ -725,17 +721,11 @@
       const lineBubbleRow = document.getElementById("lineBubbleRow");
       const lineAvatar = document.getElementById("lineAvatar");
       const lineName = document.getElementById("lineName");
-      const lineBubble = document.getElementById("lineBubble");
-      const lineBubbleTimer = document.getElementById("lineBubbleTimer");
-      const timerLabel = document.getElementById("timerLabel");
-      const timerCountdown = document.getElementById("timerCountdown");
-      const lineBubbleLate = document.getElementById("lineBubbleLate");
-      const resendBubbleBtn = document.getElementById("resendBubbleBtn");
+      const lineMessages = document.getElementById("lineMessages");
 
       let audioCtx = null;
       let cooldownTimer = null;
       let errorResetTimer = null;
-      let replyResetTimer = null;
       let replyStageTimers = [];
       let replyTimerInterval = null;
       let pollTimer = null;
@@ -849,8 +839,6 @@
       }
 
       function clearReplyTimers() {
-        clearTimeout(replyResetTimer);
-        replyResetTimer = null;
         replyStageTimers.forEach(clearTimeout);
         replyStageTimers = [];
         clearInterval(replyTimerInterval);
@@ -867,9 +855,7 @@
         isReplyShowing = false;
         rightPane.classList.remove("is-reply-panel");
         replyStage.classList.remove("can-resend");
-        lineBubbleTimer.classList.remove("is-visible");
-        lineBubbleLate.classList.remove("is-visible");
-        resendBubbleBtn.classList.remove("is-visible");
+        lineMessages.innerHTML = "";
         splitLayout.classList.remove("is-expanded");
         callButton.disabled = false;
         callButton.classList.remove("is-sent");
@@ -909,50 +895,66 @@
         return `${mins}:${secs}`;
       }
 
-      function showBubble(el) {
-        el.classList.add("is-visible");
-        el.style.animation = "none";
-        void el.offsetWidth;
-        el.style.animation = "";
-      }
-
       function showLateAndResend() {
-        showBubble(lineBubbleLate);
+        const lateEl = document.createElement("div");
+        lateEl.className = "line-bubble-late";
+        lateEl.textContent = "ごめんなさい。遅れています。";
+        lineMessages.appendChild(lateEl);
+
         replyStageTimers.push(setTimeout(() => {
-          showBubble(resendBubbleBtn);
+          const resendEl = document.createElement("button");
+          resendEl.className = "line-bubble-resend";
+          resendEl.type = "button";
+          resendEl.textContent = "もう一度呼ぶ";
+          lineMessages.appendChild(resendEl);
           replyStage.classList.add("can-resend");
         }, 500));
       }
 
       function showReply(text) {
+        // 新しいメッセージが来たら、以前のタイマーは必ず停止する
         clearReplyTimers();
         clearTimeout(errorResetTimer);
         errorResetTimer = null;
+        replyStage.classList.remove("can-resend");
+
+        const isFirstReply = !isReplyShowing;
         isReplyShowing = true;
         splitLayout.classList.add("is-expanded");
         rightPane.classList.add("is-reply-panel");
-        replyStage.classList.remove("can-resend");
-        lineBubbleTimer.classList.remove("is-visible");
-        lineBubbleLate.classList.remove("is-visible");
-        resendBubbleBtn.classList.remove("is-visible");
 
-        lineBubble.textContent = text;
-        lineBubbleRow.style.animation = "none";
-        void lineBubbleRow.offsetWidth;
-        lineBubbleRow.style.animation = "";
+        const msgBubble = document.createElement("div");
+        msgBubble.className = "line-bubble" + (isFirstReply ? "" : " is-followup");
+        msgBubble.textContent = text;
+
+        if (isFirstReply) {
+          lineMessages.innerHTML = "";
+          lineMessages.appendChild(msgBubble);
+          lineBubbleRow.style.animation = "none";
+          void lineBubbleRow.offsetWidth;
+          lineBubbleRow.style.animation = "";
+        } else {
+          lineMessages.appendChild(msgBubble);
+        }
 
         const info = parseReplyTimerInfo(text, Date.now());
         if (!info) {
-          // 時間指定のない返答は 60 秒後に自動復帰
-          replyResetTimer = setTimeout(resetToStandby, REPLY_RESET_MS);
+          // タイマー不要のメッセージなら以前のタイマーを停止したまま表示を維持する
           return;
         }
 
         if (info.mode === "eta") {
           replyStageTimers.push(setTimeout(() => {
-            timerLabel.textContent = "戻り予定";
-            timerCountdown.textContent = formatClockTime(info.targetMs);
-            showBubble(lineBubbleTimer);
+            const timerEl = document.createElement("div");
+            timerEl.className = "line-bubble-timer";
+            const labelEl = document.createElement("span");
+            labelEl.textContent = "戻り予定";
+            const countEl = document.createElement("span");
+            countEl.className = "timer-countdown";
+            countEl.textContent = formatClockTime(info.targetMs);
+            timerEl.appendChild(labelEl);
+            timerEl.appendChild(countEl);
+            lineMessages.appendChild(timerEl);
 
             if (Date.now() >= info.targetMs) {
               showLateAndResend();
@@ -969,22 +971,30 @@
           return;
         }
 
-        const tick = () => {
-          const remaining = info.targetMs - Date.now();
-          timerLabel.textContent = "あと";
-          if (remaining <= 0) {
-            timerCountdown.textContent = "0:00";
-            clearInterval(replyTimerInterval);
-            replyTimerInterval = null;
-            showLateAndResend();
-            return;
-          }
-          timerCountdown.textContent = formatRemaining(remaining);
-        };
-
         replyStageTimers.push(setTimeout(() => {
+          const timerEl = document.createElement("div");
+          timerEl.className = "line-bubble-timer";
+          const labelEl = document.createElement("span");
+          labelEl.textContent = "あと";
+          const countEl = document.createElement("span");
+          countEl.className = "timer-countdown";
+          timerEl.appendChild(labelEl);
+          timerEl.appendChild(countEl);
+          lineMessages.appendChild(timerEl);
+
+          const tick = () => {
+            const remaining = info.targetMs - Date.now();
+            if (remaining <= 0) {
+              countEl.textContent = "0:00";
+              clearInterval(replyTimerInterval);
+              replyTimerInterval = null;
+              showLateAndResend();
+              return;
+            }
+            countEl.textContent = formatRemaining(remaining);
+          };
+
           tick();
-          showBubble(lineBubbleTimer);
           if (info.targetMs > Date.now()) {
             replyTimerInterval = setInterval(tick, 250);
           }
@@ -1102,7 +1112,7 @@
       callButton.addEventListener("click", handleCall);
 
       replyStage.addEventListener("click", () => {
-        if (isReplyShowing && resendBubbleBtn.classList.contains("is-visible")) {
+        if (isReplyShowing && replyStage.classList.contains("can-resend")) {
           handleCall();
         }
       });
@@ -1207,8 +1217,9 @@
           }
 
           if (!isInit && Array.isArray(data.messages) && data.messages.length > 0) {
-            const latest = data.messages[data.messages.length - 1];
-            showReply(latest);
+            for (const msg of data.messages) {
+              showReply(msg);
+            }
           }
         } catch (err) {
           console.error("Poll failed:", err);

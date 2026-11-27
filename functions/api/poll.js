@@ -2,21 +2,9 @@
 const PRESET_REPLIES = {
   "preset:now": "すぐ向かいます！",
   "preset:5min": "5分ぐらいで戻ります！",
+  "preset:10min": "10分ぐらいで戻ります！",
   "preset:30min": "30分ぐらいで戻ります！",
 };
-
-function resolvePresetReply(callbackData) {
-  if (typeof callbackData !== "string") return null;
-  if (PRESET_REPLIES[callbackData]) return PRESET_REPLIES[callbackData];
-  const hourMatch = callbackData.match(/^preset:hour:(\d{1,2})$/);
-  if (hourMatch) {
-    const hour = Number(hourMatch[1]);
-    if (hour >= 0 && hour <= 23) {
-      return `${hour}:00頃に戻ります！`;
-    }
-  }
-  return null;
-}
 
 function jsonResponse(body, status) {
   return new Response(JSON.stringify(body), {
@@ -102,7 +90,7 @@ export async function onRequestGet(context) {
         const cq = update.callback_query;
         const chatId = String(cq.message?.chat?.id ?? "");
         if (chatId === expectedChatId) {
-          const replyText = resolvePresetReply(cq.data);
+          const replyText = PRESET_REPLIES[cq.data];
           if (replyText) {
             messages.push(replyText);
             await answerCallback(
