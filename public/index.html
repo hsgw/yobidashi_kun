@@ -940,7 +940,10 @@
 
         const info = parseReplyTimerInfo(text, Date.now());
         if (!info) {
-          // タイマー不要のメッセージなら以前のタイマーを停止したまま表示を維持する
+          // 「すぐ向かいます」の場合は 3 分後に遅れメッセージと再送信ボタンを表示する
+          if (text.includes("すぐ向かいます")) {
+            replyStageTimers.push(setTimeout(showLateAndResend, 3 * 60 * 1000));
+          }
           return;
         }
 
