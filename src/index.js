@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 import { onRequestPost as callPost } from "../functions/api/call.js";
-import { onRequestGet as configGet } from "../functions/api/config.js";
+import { onRequestGet as pollGet } from "../functions/api/poll.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -10,8 +10,8 @@ export default {
       return callPost({ request, env, ctx });
     }
 
-    if (url.pathname === "/api/config" && request.method === "GET") {
-      return configGet({ request, env, ctx });
+    if (url.pathname === "/api/poll" && request.method === "GET") {
+      return pollGet({ request, env, ctx });
     }
 
     if (env.ASSETS) {

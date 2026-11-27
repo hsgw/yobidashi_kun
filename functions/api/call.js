@@ -16,11 +16,14 @@ function jsonResponse(body, status, extraHeaders = {}) {
 }
 
 export async function onRequestPost(context) {
-  const { request, env } = context;
+  const { env } = context;
 
-  if (!env.DISCORD_WEBHOOK_URL) {
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
     return jsonResponse(
-      { error: "Server configuration error: DISCORD_WEBHOOK_URL is not set." },
+      {
+        error:
+          "Server configuration error: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is not set.",
+      },
       500
     );
   }
@@ -39,27 +42,24 @@ export async function onRequestPost(context) {
     );
   }
 
-  const origin = new URL(request.url).origin;
-  const replyPageUrl = `${origin}/reply.html`;
+  const apiUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`;
 
   const payload = {
-    username: "呼び出しボタン",
-    content: "@here 🔔 **会場から呼び出しがありました！**",
-    allowed_mentions: {
-      parse: ["everyone"],
+    chat_id: env.TELEGRAM_CHAT_ID,
+    text: "🔔 会場から呼び出しがありました！\n返信ボタンを押すか、このままメッセージを送ってください。",
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "今向かいます", callback_data: "preset:now" },
+          { text: "あと5分", callback_data: "preset:5min" },
+        ],
+        [{ text: "あと10分", callback_data: "preset:10min" }],
+      ],
     },
-    embeds: [
-      {
-        title: "ブースへ返信する",
-        description: `[返信ページを開く](${replyPageUrl})`,
-        color: 0xdc2626,
-        timestamp: new Date(now).toISOString(),
-      },
-    ],
   };
 
   try {
-    const response = await fetch(env.DISCORD_WEBHOOK_URL, {
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json; charset=utf-8",
@@ -67,14 +67,15 @@ export async function onRequestPost(context) {
       body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      console.error("Discord Webhook error:", response.status, errorText);
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok || !data?.ok) {
+      console.error("Telegram sendMessage error:", response.status, data);
       return jsonResponse(
         {
           error: "Failed to send notification.",
-          discordStatus: response.status,
-          detail: errorText.slice(0, 200),
+          telegramStatus: response.status,
+          detail: data?.description || "Unknown Telegram API error",
         },
         500
       );
@@ -83,10 +84,10 @@ export async function onRequestPost(context) {
     lastCallTime = Date.now();
     return jsonResponse({ ok: true, cooldownSeconds: COOLDOWN_MS / 1000 }, 200);
   } catch (err) {
-    console.error("Discord Webhook fetch failed:", err);
+    console.error("Telegram fetch failed:", err);
     return jsonResponse(
       {
-        error: "Failed to reach notification service.",
+        error: "Failed to reach Telegram API.",
         detail: err instanceof Error ? err.message : String(err),
       },
       500
