@@ -195,7 +195,7 @@
       box-shadow: inset 4px 0 0 rgba(0, 0, 0, 0.14);
     }
 
-    .call-button:active:not(:disabled):not(.is-can-resend) {
+    .call-button:active:not(:disabled):not(.is-can-resend):not(.is-away) {
       background-color: #c2410c;
       box-shadow: inset 0 6px 24px rgba(0, 0, 0, 0.28);
     }
@@ -231,8 +231,82 @@
 
     .call-button:disabled .bell-wrap,
     .call-button.is-sending .bell-wrap,
-    .call-button.is-sent .bell-wrap {
+    .call-button.is-sent .bell-wrap,
+    .call-button.is-away .bell-wrap {
       display: none;
+    }
+
+    .call-button.is-away {
+      background-color: #18181b;
+      color: #ffffff;
+      cursor: default;
+      box-shadow: inset 1px 0 0 #27272a;
+    }
+
+    .away-panel {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-align: center;
+      padding: 0 20px;
+    }
+
+    .call-button.is-away .button-label,
+    .call-button.is-away .button-sub {
+      display: none;
+    }
+
+    .call-button.is-away .away-panel {
+      display: flex;
+    }
+
+    .away-clock {
+      width: clamp(44px, 6vw, 58px);
+      height: clamp(44px, 6vw, 58px);
+      fill: #fb923c;
+      margin-bottom: 6px;
+    }
+
+    .away-time,
+    .away-sub {
+      font-size: clamp(2rem, 5.2vw, 2.85rem);
+      font-weight: 900;
+      line-height: 1.18;
+      letter-spacing: 0.03em;
+      color: #ffffff;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .away-time-approx {
+      font-size: clamp(1.15rem, 2.8vw, 1.6rem);
+      font-weight: 700;
+      margin-left: 5px;
+      opacity: 0.9;
+    }
+
+    .away-preset-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .away-preset-btn {
+      border: 1px solid #3f3f46;
+      border-radius: 10px;
+      background-color: #27272a;
+      color: #ffffff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 12px;
+      cursor: pointer;
+    }
+
+    .away-preset-btn:active {
+      background-color: #ea580c;
+      border-color: #f97316;
     }
 
     .button-bell {
@@ -808,7 +882,7 @@
         <span class="status-dot" aria-hidden="true"></span>
         <span id="eyebrowText">ちょっと離席中です</span>
       </div>
-      <h1 class="title">制作者を呼ぶ</h1>
+      <h1 id="titleHeading" class="title">制作者を呼ぶ</h1>
       <p id="statusText" class="status-message" aria-live="polite">作品の説明や質問、喋ってみたいなど、なんでも気軽にどうぞ！</p>
       <div id="creatorChip" class="creator-chip is-hidden">
         <div id="creatorAvatar" class="creator-avatar" aria-hidden="true"></div>
@@ -818,6 +892,11 @@
 
     <div id="rightPane" class="right-pane">
       <button id="callButton" class="call-button" type="button">
+        <div id="awayPanel" class="away-panel">
+          <svg class="away-clock" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+          <div class="away-time"><span id="awayTimeText"></span><span class="away-time-approx">頃</span></div>
+          <div class="away-sub">帰ってきます</div>
+        </div>
         <div class="bell-wrap" aria-hidden="true">
           <svg class="button-bell" viewBox="-18 0 60 24">
             <g class="bell-wave bell-wave-1">
@@ -877,6 +956,29 @@
     </form>
   </div>
 
+  <div id="awayModal" class="edit-modal" role="dialog" aria-modal="true" aria-label="戻り予定時刻の設定">
+    <form id="awayForm" class="edit-card">
+      <div class="edit-field">
+        <span class="edit-label">ワンタップで設定</span>
+        <div class="away-preset-row">
+          <button class="away-preset-btn" data-away-offset="30" type="button">30分後</button>
+          <button class="away-preset-btn" data-away-offset="60" type="button">1時間後</button>
+        </div>
+      </div>
+      <div class="edit-field">
+        <label class="edit-label" for="awayTimeInput">時刻入力</label>
+        <input id="awayTimeInput" class="edit-input" type="time">
+      </div>
+      <div class="edit-actions">
+        <span></span>
+        <div class="edit-actions-right">
+          <button id="awayCancelBtn" class="edit-btn edit-btn-cancel" type="button">キャンセル</button>
+          <button class="edit-btn edit-btn-save" type="submit">設定</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
   <script>
     (function () {
       const COOLDOWN_MS = 60_000;
@@ -887,6 +989,7 @@
       const LONG_PRESS_MS = 3_000;
       const EDIT_LONG_PRESS_MS = 1_500;
       const STORAGE_KEY = "yobidashi_last_call_time";
+      const AWAY_TIME_STORAGE_KEY = "yobidashi_away_return_time";
       const EYEBROW_STORAGE_KEY = "yobidashi_custom_eyebrow";
       const MESSAGE_STORAGE_KEY = "yobidashi_custom_message";
       const DEFAULT_EYEBROW = "ちょっと離席中です";
@@ -896,6 +999,7 @@
       const splitLayout = document.getElementById("splitLayout");
       const statusEyebrow = document.getElementById("statusEyebrow");
       const eyebrowText = document.getElementById("eyebrowText");
+      const titleHeading = document.getElementById("titleHeading");
       const statusText = document.getElementById("statusText");
       const editModal = document.getElementById("editModal");
       const editForm = document.getElementById("editForm");
@@ -905,6 +1009,11 @@
       const editMessageInput = document.getElementById("editMessageInput");
       const editResetBtn = document.getElementById("editResetBtn");
       const editCancelBtn = document.getElementById("editCancelBtn");
+      const awayModal = document.getElementById("awayModal");
+      const awayForm = document.getElementById("awayForm");
+      const awayTimeInput = document.getElementById("awayTimeInput");
+      const awayCancelBtn = document.getElementById("awayCancelBtn");
+      const awayTimeText = document.getElementById("awayTimeText");
       const creatorChip = document.getElementById("creatorChip");
       const creatorAvatar = document.getElementById("creatorAvatar");
       const creatorName = document.getElementById("creatorName");
@@ -932,8 +1041,28 @@
       let isReplyShowing = false;
       let longPressTimer = null;
       let editLongPressTimer = null;
+      let awayLongPressTimer = null;
       let currentEditTarget = null;
       let suppressNextClick = false;
+
+      function getSavedAwayTime() {
+        return localStorage.getItem(AWAY_TIME_STORAGE_KEY) || "";
+      }
+
+      function renderStandbyButton() {
+        const awayTime = getSavedAwayTime();
+        if (awayTime) {
+          callButton.disabled = false;
+          callButton.classList.remove("is-sending", "is-sent", "is-fading", "is-can-resend");
+          callButton.classList.add("is-away");
+          awayTimeText.textContent = awayTime;
+        } else {
+          callButton.disabled = false;
+          callButton.classList.remove("is-sending", "is-sent", "is-fading", "is-can-resend", "is-away");
+          setAnimatedText(buttonLabel, "CALL", false);
+          buttonSub.textContent = "タップして呼ぶ";
+        }
+      }
 
       function getSavedEyebrow() {
         return localStorage.getItem(EYEBROW_STORAGE_KEY) || DEFAULT_EYEBROW;
@@ -1107,15 +1236,13 @@
         clearInterval(cooldownTimer);
         cooldownTimer = null;
         localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(AWAY_TIME_STORAGE_KEY);
         isReplyShowing = false;
         rightPane.classList.remove("is-reply-panel");
         replyStage.classList.remove("can-resend", "is-overflowing");
         lineMessages.innerHTML = "";
         splitLayout.classList.remove("is-expanded");
-        callButton.disabled = false;
-        callButton.classList.remove("is-sending", "is-sent", "is-fading", "is-can-resend");
-        setAnimatedText(buttonLabel, "CALL", false);
-        buttonSub.textContent = "タップして呼ぶ";
+        renderStandbyButton();
         setStatus(getSavedMessage(), false);
       }
 
@@ -1313,10 +1440,7 @@
           cooldownTimer = null;
           if (!isRequesting) {
             splitLayout.classList.remove("is-expanded");
-            callButton.disabled = false;
-            callButton.classList.remove("is-sending", "is-sent", "is-fading", "is-can-resend");
-            setAnimatedText(buttonLabel, "CALL", false);
-            buttonSub.textContent = "タップして呼ぶ";
+            renderStandbyButton();
           }
           return false;
         }
@@ -1372,7 +1496,7 @@
 
       async function handleCall() {
         if (isRequesting) return;
-        if (!isReplyShowing && callButton.disabled) return;
+        if (!isReplyShowing && (callButton.disabled || callButton.classList.contains("is-away"))) return;
 
         clearReplyTimers();
         clearTimeout(errorResetTimer);
@@ -1463,8 +1587,8 @@
       }
 
       document.addEventListener("pointerdown", () => {
-        const isStandby = !splitLayout.classList.contains("is-expanded") && !errorResetTimer;
-        if (isStandby) return;
+        const isNormalStandby = !splitLayout.classList.contains("is-expanded") && !errorResetTimer && !getSavedAwayTime();
+        if (isNormalStandby || editModal.classList.contains("is-open") || awayModal.classList.contains("is-open")) return;
         cancelLongPress();
         longPressTimer = setTimeout(() => {
           suppressNextClick = true;
@@ -1477,6 +1601,71 @@
 
       document.addEventListener("pointerup", cancelLongPress);
       document.addEventListener("pointercancel", cancelLongPress);
+
+      // 通常待機中に CALL ボタン自体を 3 秒長押しで戻り予定時刻設定モーダルを開く
+      function cancelAwayLongPress() {
+        clearTimeout(awayLongPressTimer);
+        awayLongPressTimer = null;
+      }
+
+      function openAwayModal() {
+        const current = getSavedAwayTime();
+        if (current) {
+          awayTimeInput.value = current;
+        } else {
+          const d = new Date(Date.now() + 30 * 60 * 1000);
+          awayTimeInput.value = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+        }
+        awayModal.classList.add("is-open");
+      }
+
+      function closeAwayModal() {
+        awayModal.classList.remove("is-open");
+      }
+
+      function applyAwayTime(hhmm) {
+        if (!hhmm) return;
+        localStorage.setItem(AWAY_TIME_STORAGE_KEY, hhmm);
+        renderStandbyButton();
+        closeAwayModal();
+      }
+
+      callButton.addEventListener("pointerdown", (e) => {
+        const isNormalStandby = !splitLayout.classList.contains("is-expanded") && !errorResetTimer && !getSavedAwayTime();
+        if (!isNormalStandby || editModal.classList.contains("is-open") || awayModal.classList.contains("is-open")) return;
+        e.stopPropagation();
+        cancelAwayLongPress();
+        awayLongPressTimer = setTimeout(() => {
+          suppressNextClick = true;
+          openAwayModal();
+          setTimeout(() => {
+            suppressNextClick = false;
+          }, 500);
+        }, LONG_PRESS_MS);
+      });
+
+      callButton.addEventListener("pointerup", cancelAwayLongPress);
+      callButton.addEventListener("pointercancel", cancelAwayLongPress);
+      callButton.addEventListener("pointerleave", cancelAwayLongPress);
+
+      document.querySelectorAll("[data-away-offset]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const offsetMin = Number(btn.dataset.awayOffset);
+          const target = new Date(Date.now() + offsetMin * 60 * 1000);
+          const hhmm = `${String(target.getHours()).padStart(2, "0")}:${String(target.getMinutes()).padStart(2, "0")}`;
+          applyAwayTime(hhmm);
+        });
+      });
+
+      awayForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        applyAwayTime(awayTimeInput.value);
+      });
+
+      awayCancelBtn.addEventListener("click", closeAwayModal);
+      awayModal.addEventListener("click", (e) => {
+        if (e.target === awayModal) closeAwayModal();
+      });
 
       // 待機中のサブタイトル / 説明文を長押し（1.5秒）でそれぞれ単一編集モーダルを開く
       function openEditModal(targetType) {
@@ -1611,6 +1800,7 @@
 
       // 初期化
       renderStandbyCopy();
+      renderStandbyButton();
       if (updateCooldownUI()) {
         cooldownTimer = setInterval(updateCooldownUI, 250);
       }
